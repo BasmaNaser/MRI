@@ -1,0 +1,55 @@
+{
+  "tumortypes": [
+    { "tumorName": "Glioblastoma Multiforme" },
+    { "tumorName": "Astrocytoma (Low Grade)" },
+    { "tumorName": "Oligodendroglioma" },
+    { "tumorName": "Meningioma" },
+    { "tumorName": "Pituitary Adenoma" },
+    { "tumorName": "Medulloblastoma" },
+    { "tumorName": "Schwannoma" },
+    { "tumorName": "Craniopharyngioma" },
+    { "tumorName": "Primary CNS Lymphoma" },
+    { "tumorName": "Metastatic Brain Tumor" }
+  ],
+  "recommendations": [
+    { "subject": "Immediate referral to neuro-oncologist", "tumorName": "Glioblastoma Multiforme" },
+    { "subject": "Consider surgery followed by chemoradiation", "tumorName": "Glioblastoma Multiforme" },
+    { "subject": "MRI every 2-3 months", "tumorName": "Glioblastoma Multiforme" },
+
+    { "subject": "MRI in 3-6 months", "tumorName": "Astrocytoma (Low Grade)" },
+    { "subject": "Neuro-oncology consult", "tumorName": "Astrocytoma (Low Grade)" },
+    { "subject": "Observation if asymptomatic", "tumorName": "Astrocytoma (Low Grade)" },
+
+    { "subject": "Surgical evaluation", "tumorName": "Oligodendroglioma" },
+    { "subject": "Genetic testing for 1p/19q codeletion", "tumorName": "Oligodendroglioma" },
+    { "subject": "Follow-up MRI every 6 months", "tumorName": "Oligodendroglioma" },
+
+    { "subject": "Neurology consult", "tumorName": "Meningioma" },
+    { "subject": "Surgical evaluation if symptomatic", "tumorName": "Meningioma" },
+    { "subject": "MRI annually if small", "tumorName": "Meningioma" },
+
+    { "subject": "Endocrinology evaluation", "tumorName": "Pituitary Adenoma" },
+    { "subject": "Visual field testing", "tumorName": "Pituitary Adenoma" },
+    { "subject": "MRI yearly", "tumorName": "Pituitary Adenoma" },
+
+    { "subject": "Pediatric oncology referral", "tumorName": "Medulloblastoma" },
+    { "subject": "Consider surgery + radiation", "tumorName": "Medulloblastoma" },
+    { "subject": "Frequent MRI scans", "tumorName": "Medulloblastoma" },
+
+    { "subject": "Neurosurgery consult", "tumorName": "Schwannoma" },
+    { "subject": "Observation if stable", "tumorName": "Schwannoma" },
+    { "subject": "MRI every 6-12 months", "tumorName": "Schwannoma" },
+
+    { "subject": "Neurosurgery consult", "tumorName": "Craniopharyngioma" },
+    { "subject": "Endocrinology follow-up", "tumorName": "Craniopharyngioma" },
+    { "subject": "MRI every 6 months", "tumorName": "Craniopharyngioma" },
+
+    { "subject": "Hematology/oncology referral", "tumorName": "Primary CNS Lymphoma" },
+    { "subject": "Chemotherapy evaluation", "tumorName": "Primary CNS Lymphoma" },
+    { "subject": "MRI every 3 months", "tumorName": "Primary CNS Lymphoma" },
+
+    { "subject": "Systemic oncology referral", "tumorName": "Metastatic Brain Tumor" },
+    { "subject": "Radiotherapy evaluation", "tumorName": "Metastatic Brain Tumor" },
+    { "subject": "MRI every 3 months", "tumorName": "Metastatic Brain Tumor" }
+  ]
+}
