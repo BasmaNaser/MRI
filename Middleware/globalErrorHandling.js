@@ -4,6 +4,14 @@ function errorHandler(error, req, res, next) {
 
     const message = error.message || 'Internal Server Error';
 
+    if(statusCode===500)
+    {
+        res.status(statusCode).json({
+        success: false,
+        message :'Internal Server Error'
+    });
+    }
+
     res.status(statusCode).json({
         success: false,
         message :message

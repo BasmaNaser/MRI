@@ -2,17 +2,10 @@ const mongoose=require('mongoose');
 
 const noteSchema=new mongoose.Schema(
     {
-        patient:
+        mriscan:
         {
             type:mongoose.Schema.Types.ObjectId,
-            ref:'Patient',
-            required:true
-        },
-        doctor:
-        {
-            type:mongoose.Schema.Types.ObjectId,
-            ref:'Doctor',
-            required:true
+            ref:'Mriscan'
         },
         title:
         {

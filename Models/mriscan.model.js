@@ -1,6 +1,6 @@
-const mongoose=require('mongoose');
+const mongoose = require('mongoose');
 
-const mriScanSchema=mongoose.Schema(
+const mriScanSchema = new mongoose.Schema(
 {
     scanImage:{
         type:String,
@@ -12,36 +12,25 @@ const mriScanSchema=mongoose.Schema(
         default:Date.now
     },
 
-    confidenceScore:{
-        type:Number
-    },
-
-    result:{
-        type:String,
-        enum:['Tumor','Normal']
-    },
-
-    reportFile:String,
-
-    reportDate:Date,
-
-    tumorName:{
-        type:mongoose.Schema.Types.ObjectId,
-        ref:'Tumortype'
-    },
-
     patient:{
         type:mongoose.Schema.Types.ObjectId,
-        ref:'User'
+        ref:'Patient',
+        required:true
     },
 
     doctor:{
         type:mongoose.Schema.Types.ObjectId,
         ref:'Doctor'
+    },
+
+    status:{
+        type:String,
+        enum:['Pending','Reviewed'],
+        default:'Pending'
     }
 
 },
 {timestamps:true}
-)
+);
 
-module.exports=mongoose.model('Mriscan',mriScanSchema);
+module.exports = mongoose.model('MriScan',mriScanSchema);

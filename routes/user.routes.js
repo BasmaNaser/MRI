@@ -1,6 +1,6 @@
 const express=require('express');
 const userRouter=express.Router();
-const signupValidation=require('../Middleware/Validation');
+const {signupValidation}=require('../Middleware/Validation');
 const checkError=require('../Middleware/errorMessage')
 const {signupController,loginController,tokenLoginController,refreshTokenController,forgetPasswordController,resetPasswordController,getAllUsers}=require('../Controllers/auth.controller')
 

@@ -15,12 +15,12 @@ app.use(cors({
   credentials: true
 }));
 app.use('/api-docs', swaggerUI.serve, swaggerUI.setup(swaggerSpec));
-
+app.use('/uploads', express.static('uploads'));
 app.use(logger);
 app.use(express.json());
 app.use(cookieParser());
 app.use('/users',userRouter);
-app.use('/api',patientRouter)
+app.use('/api/patient',patientRouter)
 app.use(errorHandler);
 
 module.exports=app;

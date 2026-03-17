@@ -5,8 +5,11 @@ const tumorjson=require('./tumorand Recommenfation.json')
 const Recommendation=require('../Models/recommendation.model')
 async function db() {
 try {
-        await mongoose.connect(process.env.MONGO_URL);
+        await mongoose.connect(process.env.MONGO_URL,{
+  serverSelectionTimeoutMS: 30000
+});
         console.log('Connection Running Successfuly ✅');
+        
         // await tumortype.deleteMany({});
         // await Recommendation.deleteMany({});
         // const savedTumortype=[];
