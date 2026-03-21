@@ -8,19 +8,20 @@ const swaggerSpec = require('./swagger/swagger');
 const errorHandler=require('./Middleware/globalErrorHandling');
 const cors = require("cors");
 const patientRouter = require('./routes/patient.routes');
-app.get('/', (req, res) => {
-  res.send('MRI API is running 🚀');
-});
+
 app.use(cors({
   origin: "http://localhost:5173",
   methods: ["GET", "POST", "PUT", "DELETE"],
   credentials: true
 }));
-app.use('/api-docs', swaggerUI.serve, swaggerUI.setup(swaggerSpec));
+app.get('/', (req, res) => {
+  res.send('MRI API is running 🚀');
+});
 app.use('/uploads', express.static('uploads'));
 app.use(logger);
 app.use(express.json());
 app.use(cookieParser());
+app.use('/api-docs', swaggerUI.serve, swaggerUI.setup(swaggerSpec));
 app.use('/users',userRouter);
 app.use('/api/patient',patientRouter)
 app.use(errorHandler);

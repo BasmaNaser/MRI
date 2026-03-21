@@ -1,5 +1,5 @@
 const swaggerJSDoc = require('swagger-jsdoc');
-
+const path=require('path');
 const options = {
   definition: {
     openapi: '3.0.0',
@@ -10,7 +10,7 @@ const options = {
     },
     servers: [
       {
-    url: '/',
+    url: 'https://fc836cad-c071-4840-89ca-c81ed0b1b964-00-3fke9jt1g4iq9.picard.replit.dev/',
         description: 'Replit server'
       }
     ],
@@ -24,7 +24,7 @@ const options = {
       }
     }
   },
-  apis: ['./Routes/*.js'],  
+  apis: [path.join(__dirname, '../routes/*.js')]
 };
 
 module.exports = swaggerJSDoc(options);
