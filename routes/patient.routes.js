@@ -16,7 +16,7 @@ const protect=require('../Middleware/protect')
 
 /**
  * @swagger
- * /patient/profile:
+ * /api/patient/profile:
  *   get:
  *     summary: Get patient profile
  *     tags: [Patient]
@@ -32,7 +32,7 @@ patientRouter.get('/profile', protect('Patient'), getProfileController);
 
 /**
  * @swagger
- * /patient/doctors:
+ * /api/patient/doctors:
  *   get:
  *     summary: Get all doctors
  *     tags: [Patient]
@@ -46,7 +46,7 @@ patientRouter.get('/doctors', protect('Patient'), getAllDoctorsController);
 
 /**
  * @swagger
- * /patient/assigndoctor:
+ * /api/patient/assigndoctor:
  *   post:
  *     summary: Assign/follow a doctor
  *     tags: [Patient]
@@ -70,7 +70,7 @@ patientRouter.post('/assigndoctor', protect('Patient'), followDoctorController);
 
 /**
  * @swagger
- * /patient/auth/logout:
+ * /api/patient/auth/logout:
  *   post:
  *     summary: Logout patient
  *     tags: [Patient]
@@ -84,7 +84,7 @@ patientRouter.post('/auth/logout', protect('Patient'), logoutController);
 
 /**
  * @swagger
- * /patient/dashboard/recent-reports:
+ * /api/patient/dashboard/recent-reports:
  *   get:
  *     summary: Get recent reports for dashboard
  *     tags: [Patient]
@@ -98,7 +98,7 @@ patientRouter.get('/dashboard/recent-reports', protect('Patient'), getRecentRepo
 
 /**
  * @swagger
- * /patient/dashboard/summary:
+ * /api/patient/dashboard/summary:
  *   get:
  *     summary: Get dashboard summary
  *     tags: [Patient]
@@ -112,7 +112,7 @@ patientRouter.get('/dashboard/summary', protect('Patient'), getDashboardSummaryC
 
 /**
  * @swagger
- * /patient/dashboard/latest-notes:
+ * /api/patient/dashboard/latest-notes:
  *   get:
  *     summary: Get latest notes
  *     tags: [Patient]
@@ -126,7 +126,7 @@ patientRouter.get('/dashboard/latest-notes', protect('Patient'), getLatestNotesC
 
 /**
  * @swagger
- * /patient/tumors:
+ * /api/patient/tumors:
  *   get:
  *     summary: Get all tumor types
  *     tags: [Patient]
@@ -140,7 +140,7 @@ patientRouter.get('/tumors', protect('Patient'), getAllTumorsTypeController);
 
 /**
  * @swagger
- * /patient/reports:
+ * /api/patient/reports:
  *   get:
  *     summary: Get all reports
  *     tags: [Patient]
@@ -165,7 +165,7 @@ patientRouter.get('/reports', protect('Patient'), getAllReportsController);
 
 /**
  * @swagger
- * /patient/scans/upload:
+ * /api/patient/scans/upload:
  *   post:
  *     summary: Upload a scan image
  *     tags: [Patient]
@@ -189,7 +189,7 @@ patientRouter.post('/scans/upload', protect('Patient'), uploadFile('scans').sing
 
 /**
  * @swagger
- * /patient/scans/result/{id}:
+ * /api/patient/scans/result/{id}:
  *   get:
  *     summary: Get scan result by scan ID
  *     tags: [Patient]
@@ -210,7 +210,7 @@ patientRouter.get('/scans/result/:id', protect('Patient'), getScanResultControll
 
 /**
  * @swagger
- * /patient/reports/{id}/download:
+ * /api/patient/reports/{id}/download:
  *   get:
  *     summary: Download a report
  *     tags: [Patient]
@@ -231,7 +231,7 @@ patientRouter.get('/reports/:id/download', protect('Patient'), downloadReportCon
 
 /**
  * @swagger
- * /patient/reports/{id}:
+ * /api/patient/reports/{id}:
  *   delete:
  *     summary: Delete a report
  *     tags: [Patient]
@@ -252,7 +252,7 @@ patientRouter.delete('/reports/:id', protect('Patient'), deleteReportController)
 
 /**
  * @swagger
- * /patient/recommendations/latest:
+ * /api/patient/recommendations/latest:
  *   get:
  *     summary: Get latest recommendation
  *     tags: [Patient]
@@ -266,7 +266,7 @@ patientRouter.get('/recommendations/latest', protect('Patient'), getLatestRecomm
 
 /**
  * @swagger
- * /patient/recommendations/download:
+ * /api/patient/recommendations/download:
  *   get:
  *     summary: Download latest recommendation
  *     tags: [Patient]
@@ -280,7 +280,7 @@ patientRouter.get('/recommendations/download', protect('Patient'), downloadLates
 
 /**
  * @swagger
- * /patient/profile/uploadImage:
+ * /api/patient/profile/uploadImage:
  *   put:
  *     summary: Upload patient profile image
  *     tags: [Patient]
@@ -304,7 +304,7 @@ patientRouter.put('/profile/uploadImage', protect('Patient'), uploadFile('patien
 
 /**
  * @swagger
- * /patient/profile/change-password:
+ * /api/patient/profile/change-password:
  *   put:
  *     summary: Change patient password
  *     tags: [Patient]
@@ -317,9 +317,11 @@ patientRouter.put('/profile/uploadImage', protect('Patient'), uploadFile('patien
  *           schema:
  *             type: object
  *             properties:
- *               oldPassword:
+ *               currentPassword:
  *                 type: string
  *               newPassword:
+ *                 type: string
+ *               confirmNewPassword:
  *                 type: string
  *     responses:
  *       200:
@@ -329,7 +331,7 @@ patientRouter.put('/profile/change-password', protect('Patient'), validateChange
 
 /**
  * @swagger
- * /patient/profile:
+ * /api/patient/profile:
  *   put:
  *     summary: Update patient profile
  *     tags: [Patient]

@@ -10,13 +10,11 @@ const cors = require("cors");
 const patientRouter = require('./routes/patient.routes');
 
 app.use(cors({
-  origin: "http://localhost:5173",
+  origin: ["http://localhost:5173","http://localhost:5000"],
   methods: ["GET", "POST", "PUT", "DELETE"],
   credentials: true
 }));
-app.get('/', (req, res) => {
-  res.send('MRI API is running 🚀');
-});
+
 app.use('/uploads', express.static('uploads'));
 app.use(logger);
 app.use(express.json());

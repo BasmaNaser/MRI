@@ -64,7 +64,7 @@ userRouter.post('/signup',signupValidation,checkError,signupController);
  *               - emailUsername
  *               - password
  *             properties:
- *               emailUsername:
+ *               emailOrUsername:
  *                 type: string
  *                 example: john@example.com
  *               password:
