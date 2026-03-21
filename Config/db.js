@@ -1,4 +1,7 @@
 const mongoose=require('mongoose');
+const Report = require('../Models/report.model');
+const Note = require('../Models/notes.model');
+
 require('dotenv').config();
 const tumortype=require('../Models/tumorType.model');
 const tumorjson=require('./tumorand Recommenfation.json')

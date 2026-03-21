@@ -10,8 +10,8 @@ const options = {
     },
     servers: [
       {
-        url: 'http://localhost:5000',
-        description: 'Local server'
+        url: '/',
+        description: 'Replit server'
       }
     ],
     components: {

@@ -68,10 +68,11 @@ async function loginController(req, res) {
         if (!user)
             user=await User.findOne({username:emailOrUsername});
         if (!user)
-            return res.status(401).json({ message: 'Invalid Username Or Password' });
+            return res.status(401).json({ message: 'Invalid Username Or Password1' });
         const isMatch = await comparePassword(password, user.password);
         if (!isMatch)
-            return res.status(400).json({ message: 'Invalid Username Or Password' });
+            return res.status(400).json({ message: 'Invalid Username Or Password2' });
+        const patient=await Patient.findOne({user:user._id});
         const accessToken = createAccessToken(user._id, user.role);
         const refreshToken = createRefreshToken(user._id, user.role);
         res.cookie('refreshToken', refreshToken,
@@ -84,7 +85,8 @@ async function loginController(req, res) {
                 success: true,
                 message: 'Login Successfuly',
                 data: accessToken,
-                role: user.role
+                role: user.role,
+                id:patient._id
             }
         )
     } catch (error) {
@@ -161,7 +163,7 @@ async function forgetPasswordController(req,res)
         if(!user)
             return res.status(200).json({message:'Reset email Sent {if it Exists}!'});
         const resetToken = createResetToken(user._id,user.role);
-        //const resetlink=`${process.env.FRONTEND_URL}/reset-password/${resettoken}`
+        // const resetlink=`${process.env.FRONTEND_URL}/reset-password/${resettoken}`
     
         // const info = await sendEmailRestPassword(email,user.username,resetlink,'Reset your password');
         res.status(200).json({success:true,message:'Reset email Sent {if it Exists}!',data:resetToken});

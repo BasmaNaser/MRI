@@ -8,7 +8,9 @@ const swaggerSpec = require('./swagger/swagger');
 const errorHandler=require('./Middleware/globalErrorHandling');
 const cors = require("cors");
 const patientRouter = require('./routes/patient.routes');
- 
+app.get('/', (req, res) => {
+  res.send('MRI API is running 🚀');
+});
 app.use(cors({
   origin: "http://localhost:5173",
   methods: ["GET", "POST", "PUT", "DELETE"],

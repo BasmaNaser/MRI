@@ -1,4 +1,7 @@
 const { body } = require('express-validator');
+const User = require('../Models/user.model');
+const Doctor = require('../Models/doctor.model');
+
 const signupValidation = [
     body('username').isString().withMessage('Username required').trim(),
     body('email').isEmail().withMessage('Email Must be Valid').trim(),

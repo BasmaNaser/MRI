@@ -7,24 +7,349 @@ const {getProfileController,getAllDoctorsController,logoutController,followDocto
     downloadLatestRecommendationController,uploadPatientImageController,changePasswordController,updateProfileController}=require('../Controllers/patient.controller');
 const {validateChangePassword,updateProfileValidation}=require('../Middleware/Validation')
 const protect=require('../Middleware/protect')
-patientRouter.get('/profile',protect('Patient'),getProfileController);
-patientRouter.get('/doctors',protect('Patient'),getAllDoctorsController);
-patientRouter.post('/assigndoctor',protect('Patient'),followDoctorController);
-patientRouter.post('/auth/logout',protect('Patient'),logoutController);
-patientRouter.get('/dashboard/recent-reports',protect('Patient'),getRecentReportsController);
-patientRouter.get('/dashboard/summary',protect('Patient'),getDashboardSummaryController);
-patientRouter.get('dashboard/latest-notes',protect('Patient'),getLatestNotesController);
-patientRouter.get('/tumors',protect('Patient'),getAllTumorsTypeController)
-patientRouter.get('/reports',protect('Patient'),getAllReportsController)
-patientRouter.get('/scans/upload', protect('Patient'), uploadFile('scans').single('scanImage'),uploadScanController)
-patientRouter.get('/scans/result/:id',protect('Patient'),getScanResultController)
-patientRouter.get('/reports/:id/download',protect('Patient'),downloadReportController)
-patientRouter.delete('/reports/:id',protect('Patient'),deleteReportController)
-patientRouter.get('/recommendations/latest',protect('Patient'),getLatestRecommendationController)
-patientRouter.get('/recommendations/download', protect, downloadLatestRecommendationController);
-patientRouter.put('/profile/uploadImage',protect('Patient'),uploadFile('patient').single('profileImage'),uploadPatientImageController);
-patientRouter.put('/profile/change-password',protect('Patient'),validateChangePassword,changePasswordController)
-patientRouter.put('/profile/update',protect('Patient'),updateProfileValidation,updateProfileController)
+/**
+ * @swagger
+ * tags:
+ *   name: Patient
+ *   description: Patient related APIs
+ */
 
+/**
+ * @swagger
+ * /patient/profile:
+ *   get:
+ *     summary: Get patient profile
+ *     tags: [Patient]
+ *     security:
+ *       - bearerAuth: []
+ *     responses:
+ *       200:
+ *         description: Patient profile retrieved successfully
+ *       401:
+ *         description: Unauthorized
+ */
+patientRouter.get('/profile', protect('Patient'), getProfileController);
+
+/**
+ * @swagger
+ * /patient/doctors:
+ *   get:
+ *     summary: Get all doctors
+ *     tags: [Patient]
+ *     security:
+ *       - bearerAuth: []
+ *     responses:
+ *       200:
+ *         description: List of doctors
+ */
+patientRouter.get('/doctors', protect('Patient'), getAllDoctorsController);
+
+/**
+ * @swagger
+ * /patient/assigndoctor:
+ *   post:
+ *     summary: Assign/follow a doctor
+ *     tags: [Patient]
+ *     security:
+ *       - bearerAuth: []
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             properties:
+ *               doctorId:
+ *                 type: string
+ *                 description: Doctor ID to follow
+ *     responses:
+ *       200:
+ *         description: Doctor assigned successfully
+ */
+patientRouter.post('/assigndoctor', protect('Patient'), followDoctorController);
+
+/**
+ * @swagger
+ * /patient/auth/logout:
+ *   post:
+ *     summary: Logout patient
+ *     tags: [Patient]
+ *     security:
+ *       - bearerAuth: []
+ *     responses:
+ *       200:
+ *         description: Logged out successfully
+ */
+patientRouter.post('/auth/logout', protect('Patient'), logoutController);
+
+/**
+ * @swagger
+ * /patient/dashboard/recent-reports:
+ *   get:
+ *     summary: Get recent reports for dashboard
+ *     tags: [Patient]
+ *     security:
+ *       - bearerAuth: []
+ *     responses:
+ *       200:
+ *         description: Recent reports retrieved
+ */
+patientRouter.get('/dashboard/recent-reports', protect('Patient'), getRecentReportsController);
+
+/**
+ * @swagger
+ * /patient/dashboard/summary:
+ *   get:
+ *     summary: Get dashboard summary
+ *     tags: [Patient]
+ *     security:
+ *       - bearerAuth: []
+ *     responses:
+ *       200:
+ *         description: Dashboard summary retrieved
+ */
+patientRouter.get('/dashboard/summary', protect('Patient'), getDashboardSummaryController);
+
+/**
+ * @swagger
+ * /patient/dashboard/latest-notes:
+ *   get:
+ *     summary: Get latest notes
+ *     tags: [Patient]
+ *     security:
+ *       - bearerAuth: []
+ *     responses:
+ *       200:
+ *         description: Latest notes retrieved
+ */
+patientRouter.get('/dashboard/latest-notes', protect('Patient'), getLatestNotesController);
+
+/**
+ * @swagger
+ * /patient/tumors:
+ *   get:
+ *     summary: Get all tumor types
+ *     tags: [Patient]
+ *     security:
+ *       - bearerAuth: []
+ *     responses:
+ *       200:
+ *         description: List of tumor types
+ */
+patientRouter.get('/tumors', protect('Patient'), getAllTumorsTypeController);
+
+/**
+ * @swagger
+ * /patient/reports:
+ *   get:
+ *     summary: Get all reports
+ *     tags: [Patient]
+ *     parameters:
+ *       - in: query
+ *         name: search
+ *         schema:
+ *           type: string
+ *         description: Search in notes
+ *       - in: query
+ *         name: tumorName
+ *         schema:
+ *           type: string
+ *         description: Filter by tumor type ID
+ *     security:
+ *       - bearerAuth: []
+ *     responses:
+ *       200:
+ *         description: Reports retrieved successfully
+ */
+patientRouter.get('/reports', protect('Patient'), getAllReportsController);
+
+/**
+ * @swagger
+ * /patient/scans/upload:
+ *   post:
+ *     summary: Upload a scan image
+ *     tags: [Patient]
+ *     security:
+ *       - bearerAuth: []
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         multipart/form-data:
+ *           schema:
+ *             type: object
+ *             properties:
+ *               scanImage:
+ *                 type: string
+ *                 format: binary
+ *     responses:
+ *       200:
+ *         description: Scan uploaded successfully
+ */
+patientRouter.post('/scans/upload', protect('Patient'), uploadFile('scans').single('scanImage'), uploadScanController);
+
+/**
+ * @swagger
+ * /patient/scans/result/{id}:
+ *   get:
+ *     summary: Get scan result by scan ID
+ *     tags: [Patient]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: string
+ *         description: Scan ID
+ *     responses:
+ *       200:
+ *         description: Scan result retrieved
+ */
+patientRouter.get('/scans/result/:id', protect('Patient'), getScanResultController);
+
+/**
+ * @swagger
+ * /patient/reports/{id}/download:
+ *   get:
+ *     summary: Download a report
+ *     tags: [Patient]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: string
+ *         description: Report ID
+ *     responses:
+ *       200:
+ *         description: Report downloaded
+ */
+patientRouter.get('/reports/:id/download', protect('Patient'), downloadReportController);
+
+/**
+ * @swagger
+ * /patient/reports/{id}:
+ *   delete:
+ *     summary: Delete a report
+ *     tags: [Patient]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: string
+ *         description: Report ID
+ *     responses:
+ *       200:
+ *         description: Report deleted successfully
+ */
+patientRouter.delete('/reports/:id', protect('Patient'), deleteReportController);
+
+/**
+ * @swagger
+ * /patient/recommendations/latest:
+ *   get:
+ *     summary: Get latest recommendation
+ *     tags: [Patient]
+ *     security:
+ *       - bearerAuth: []
+ *     responses:
+ *       200:
+ *         description: Latest recommendation retrieved
+ */
+patientRouter.get('/recommendations/latest', protect('Patient'), getLatestRecommendationController);
+
+/**
+ * @swagger
+ * /patient/recommendations/download:
+ *   get:
+ *     summary: Download latest recommendation
+ *     tags: [Patient]
+ *     security:
+ *       - bearerAuth: []
+ *     responses:
+ *       200:
+ *         description: Recommendation downloaded
+ */
+patientRouter.get('/recommendations/download', protect('Patient'), downloadLatestRecommendationController);
+
+/**
+ * @swagger
+ * /patient/profile/uploadImage:
+ *   put:
+ *     summary: Upload patient profile image
+ *     tags: [Patient]
+ *     security:
+ *       - bearerAuth: []
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         multipart/form-data:
+ *           schema:
+ *             type: object
+ *             properties:
+ *               profileImage:
+ *                 type: string
+ *                 format: binary
+ *     responses:
+ *       200:
+ *         description: Profile image uploaded successfully
+ */
+patientRouter.put('/profile/uploadImage', protect('Patient'), uploadFile('patient').single('profileImage'), uploadPatientImageController);
+
+/**
+ * @swagger
+ * /patient/profile/change-password:
+ *   put:
+ *     summary: Change patient password
+ *     tags: [Patient]
+ *     security:
+ *       - bearerAuth: []
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             properties:
+ *               oldPassword:
+ *                 type: string
+ *               newPassword:
+ *                 type: string
+ *     responses:
+ *       200:
+ *         description: Password changed successfully
+ */
+patientRouter.put('/profile/change-password', protect('Patient'), validateChangePassword, changePasswordController);
+
+/**
+ * @swagger
+ * /patient/profile:
+ *   put:
+ *     summary: Update patient profile
+ *     tags: [Patient]
+ *     security:
+ *       - bearerAuth: []
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             properties:
+ *               username:
+ *                 type: string
+ *               email:
+ *                 type: string
+ *     responses:
+ *       200:
+ *         description: Profile updated successfully
+ */
+patientRouter.put('/profile', protect('Patient'), updateProfileValidation, updateProfileController);
 
 module.exports=patientRouter;

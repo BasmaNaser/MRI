@@ -93,7 +93,7 @@ userRouter.post('/login',loginController);
  *       401:
  *         description: Invalid or expired token
  */
-userRouter.post('/token-login',tokenLoginController);
+userRouter.get('/token-login',tokenLoginController);
 /**
  * @swagger
  * /users/refresh-token:

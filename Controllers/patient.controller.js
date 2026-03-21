@@ -3,6 +3,7 @@ const Patient = require('../Models/patient.model');
 const MriScan = require('../Models/mriscan.model');
 const Report = require('../Models/report.model');
 const Tumortype = require('../Models/tumorType.model');
+const User=require('../Models/user.model')
 const Note = require('../Models/notes.model');
 const path = require('path');
 const comparePassword = require('../utils/comparePassword');
@@ -159,7 +160,7 @@ async function getRecentReportsController(req, res) {
         //     }
         // );
         const reports = await Report.find({ patient: patient._id }).populate('tumorName', 'tumorName')
-            .select('reportDate confidenceScore tumorName reportFile');
+            .select('reportDate confidenceScore tumorName reportFile').limit(5);
         if (reports.length === 0) {
             return res.status(404).json(
                 {
@@ -450,30 +451,31 @@ async function getLatestRecommendationController(req, res) {
     try {
         const user = req.user;
         const patient = await Patient.findOne({ user: user._id });
-        const latestReports = await Report.findOne({ patient: patient._id })
+        if (!patient) {
+            return res.status(404).json({ success: false, message: 'Patient not found' });
+        }
+
+        const latestReport = await Report.findOne({ patient: patient._id })
             .populate('tumorName', 'tumorName')
             .sort({ reportDate: -1 })
-            .select('tumorName confidenceScore recommendation reportDate');
+            .select('tumorName confidenceScore recommendation reportDate')
+            .lean(); // لو حابة نتجنب مشاكل الـ mongoose document
 
-        if (!latestReports)
-            return res.status(404).json(
-                {
-                    success: false,
-                    message: 'No Recommendations Found'
-                });
-        res.status(200).json(
-            {
-                success: true,
-                data: {
-                    tumorType: latestReports.tumorName.tumorName,
-                    confidenceScore: latestReports.confidenceScore,
-                    recommendation: latestReports.recommendation,
-                    recommendationDate: latestReports.reportDate
-                }
+        if (!latestReport) {
+            return res.status(404).json({ success: false, message: 'No Recommendations Found' });
+        }
+
+        return res.status(200).json({
+            success: true,
+            data: {
+                tumorType: latestReport.tumorName ? latestReport.tumorName.tumorName : null,
+                confidenceScore: latestReport.confidenceScore,
+                recommendation: latestReport.recommendation || null,
+                recommendationDate: latestReport.reportDate
             }
-        )
+        });
     } catch (error) {
-        next(error);
+        next(error); // دلوقتي next موجود
     }
 }
 
@@ -489,7 +491,10 @@ async function downloadLatestRecommendationController(req, res) {
         }
 
         const filePath = path.resolve(latestReport.reportFile);
-        res.download(filePath)
+        res.download(filePath);
+            return res.status(200).json({ success: true, message: 'File Download Successfuly' });
+
+
 
     } catch (error) {
         next(error);
@@ -514,30 +519,54 @@ async function uploadPatientImageController(req, res) {
 
 }
 
-async function changePasswordController(req, res) {
-    try {
+async function changePasswordController(req, res)
+{
+    try
+    {
         const user = req.user;
+        const patient = await User.findById(user._id);
+
         const errors = validationResult(req);
-        if (!errors.isEmpty()) {
-            return res.status(400).json({ success: false, errors: errors.array().map(e => e.msg) });
-        }
-        const { currentPassword, newPassword } = req.body;
-        const isMatch = await comparePassword(currentPassword, user.password);
-        if (!isMatch)
-            return res.status(400).json({ success: false, message: 'Current password is incorrect' });
-        const hashedPass = await Hashedpassword(newPassword);
-        user.password = hashedPass;
-        await user.save();
-        res.status(200).json(
+
+        if (!errors.isEmpty())
+        {
+            return res.status(400).json(
             {
-                success: true,
-                message: 'Password Changed Successfuly'
-            }
-        )
-    } catch (error) {
+                success:false,
+                errors: errors.array().map(e => e.msg)
+            });
+        }
+
+        const { currentPassword, newPassword } = req.body;
+
+        const isMatch = await comparePassword(currentPassword, patient.password);
+
+        if (!isMatch)
+        {
+            return res.status(400).json(
+            {
+                success:false,
+                message:'Current password is incorrect'
+            });
+        }
+
+        const hashedPass = await Hashedpassword(newPassword);
+
+        user.password = hashedPass;
+
+        await user.save();
+
+        return res.status(200).json(
+        {
+            success:true,
+            message:'Password Changed Successfully'
+        });
+
+    }
+    catch(error)
+    {
         next(error);
     }
-
 }
 
 async function updateProfileController(req, res, next) {

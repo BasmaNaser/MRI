@@ -5,7 +5,7 @@ const noteSchema=new mongoose.Schema(
         mriscan:
         {
             type:mongoose.Schema.Types.ObjectId,
-            ref:'Mriscan'
+            ref:'MriScan'
         },
         title:
         {

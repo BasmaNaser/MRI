@@ -21,6 +21,8 @@ const protect = (role) => async (req, res, next) => {
         let decode;
         try {
             decode = jwt.verify(token, process.env.ACCESS_TOKEN_SECRET);
+            console.log(decode);
+            
         } catch (err) {
             if (err.name === 'TokenExpiredError') {
                 const error = new Error('Access Token Expired, please login again');
