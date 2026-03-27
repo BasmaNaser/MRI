@@ -19,6 +19,10 @@ app.use('/uploads', express.static('uploads'));
 app.use(logger);
 app.use(express.json());
 app.use(cookieParser());
+app.get('/api-docs.json', (req, res) => {
+  res.setHeader('Content-Type', 'application/json');
+  res.send(swaggerSpec);
+});
 app.use('/api-docs', swaggerUI.serve, swaggerUI.setup(swaggerSpec));
 app.use('/users',userRouter);
 app.use('/api/patient',patientRouter)
