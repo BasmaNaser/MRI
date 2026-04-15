@@ -7,7 +7,6 @@ const {changePassword,updateAdminProfile,getDoctors,createDoctor,getDashboard,ge
     viewPatient}=require('../Controllers/Admin.controller');
     //sign up only for test
 const{signupAdmin}=require('../Controllers/auth.controller')   ;
-AdminRouter.post('/signup',signupAdmin);
 /**
  * @swagger
  * /api/admin/doctors:
