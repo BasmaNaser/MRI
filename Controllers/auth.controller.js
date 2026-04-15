@@ -5,6 +5,7 @@ const comparePassword = require('../utils/comparePassword')
 const {sendTestEmail,sendEmailRestPassword} = require('../utils/sendmail');
 const Patient=require('../Models/patient.model');
 const Doctor= require('../Models/doctor.model')
+const Admin= require('../Models/admin.model');
 const jwt= require('jsonwebtoken');
 const patientModel = require('../Models/patient.model');
 require('dotenv').config();
