@@ -7,10 +7,10 @@ const {changePassword,updateAdminProfile,getDoctors,createDoctor,getDashboard,ge
     viewPatient}=require('../Controllers/Admin.controller');
     //sign up only for test
 const{signupAdmin}=require('../Controllers/auth.controller')   ;
-AdminRouter.post('/admin/signup',signupAdmin);
+AdminRouter.post('/signup',signupAdmin);
 /**
  * @swagger
- * /admin/doctors:
+ * /api/admin/doctors:
  *   get:
  *     summary: Get all doctors
  *     tags: [Admin]
@@ -20,10 +20,10 @@ AdminRouter.post('/admin/signup',signupAdmin);
  *       200:
  *         description: List of doctors
  */
-AdminRouter.get('/admin/doctors',protectAdmin('Admin'),getDoctors);
+AdminRouter.get('/doctors',protectAdmin(),getDoctors);
 /**
  * @swagger
- * /admin/doctors:
+ * /api/admin/doctors:
  *   post:
  *     summary: Create new doctor
  *     tags: [Admin]
@@ -33,10 +33,10 @@ AdminRouter.get('/admin/doctors',protectAdmin('Admin'),getDoctors);
  *       201:
  *         description: Doctor created successfully
  */
-AdminRouter.post('/admin/doctors',protectAdmin('Admin'),createDoctor);
+AdminRouter.post('/doctors',protectAdmin(),createDoctor);
 /**
  * @swagger
- * /admin/doctors/{id}:
+ * /api/admin/doctors/{id}:
  *   put:
  *     summary: Update doctor
  *     tags: [Admin]
@@ -50,10 +50,10 @@ AdminRouter.post('/admin/doctors',protectAdmin('Admin'),createDoctor);
  *       200:
  *         description: Doctor updated
  */
-AdminRouter.put('/admin/doctors/:id',protectAdmin('Admin'),updateDoctor);
+AdminRouter.put('/doctors/:id',protectAdmin(),updateDoctor);
 /**
  * @swagger
- * /admin/doctors/{id}/status:
+ * /api/admin/doctors/{id}/status:
  *   patch:
  *     summary: Update doctor status
  *     tags: [Admin]
@@ -67,10 +67,10 @@ AdminRouter.put('/admin/doctors/:id',protectAdmin('Admin'),updateDoctor);
  *       200:
  *         description: Status updated
  */
-AdminRouter.patch('/admin/doctors/:id/status',protectAdmin('Admin'),updateDoctorStatus);
+AdminRouter.patch('/doctors/:id/status',protectAdmin(),updateDoctorStatus);
 /**
  * @swagger
- * /admin/doctors/{id}:
+ * /api/admin/doctors/{id}:
  *   delete:
  *     summary: Delete doctor
  *     tags: [Admin]
@@ -84,10 +84,10 @@ AdminRouter.patch('/admin/doctors/:id/status',protectAdmin('Admin'),updateDoctor
  *       200:
  *         description: Doctor deleted
  */
-AdminRouter.delete('/admin/doctors/:id',protectAdmin('Admin'),deleteDoctor);
+AdminRouter.delete('/doctors/:id',protectAdmin(),deleteDoctor);
 /**
  * @swagger
- * /admin/patients:
+ * /api/admin/patients:
  *   get:
  *     summary: Get all patients
  *     tags: [Admin]
@@ -97,10 +97,10 @@ AdminRouter.delete('/admin/doctors/:id',protectAdmin('Admin'),deleteDoctor);
  *       200:
  *         description: List of patients
  */
-AdminRouter.get('/admin/patients',protectAdmin('Admin'),getPatients);
+AdminRouter.get('/patients',protectAdmin(),getPatients);
 /**
  * @swagger
- * /admin/patient/{id}:
+ * /api/admin/patient/{id}:
  *   get:
  *     summary: View single patient
  *     tags: [Admin]
@@ -114,10 +114,10 @@ AdminRouter.get('/admin/patients',protectAdmin('Admin'),getPatients);
  *       200:
  *         description: Patient details
  */
-AdminRouter.get('/admin/patient/:id',protectAdmin('Admin'),viewPatient);
+AdminRouter.get('/patient/:id',protectAdmin(),viewPatient);
 /**
  * @swagger
- * /admin/reports:
+ * /api/admin/reports:
  *   get:
  *     summary: Get reports
  *     tags: [Admin]
@@ -127,10 +127,10 @@ AdminRouter.get('/admin/patient/:id',protectAdmin('Admin'),viewPatient);
  *       200:
  *         description: List of reports
  */
-AdminRouter.get('/admin/reports',protectAdmin('Admin'),getReports)
+AdminRouter.get('/reports',protectAdmin(),getReports)
 /**
  * @swagger
- * /auth/logout:
+ * /api/admin/logout:
  *   post:
  *     summary: Logout admin
  *     tags: [Admin]
@@ -140,10 +140,10 @@ AdminRouter.get('/admin/reports',protectAdmin('Admin'),getReports)
  *       200:
  *         description: Logged out successfully
  */
-AdminRouter.post('/auth/logout',protectAdmin('Admin'),logout);
+AdminRouter.post('/logout',protectAdmin(),logout);
 /**
  * @swagger
- * /admin/profile:
+ * /api/admin/profile:
  *   get:
  *     summary: Get admin profile
  *     tags: [Admin]
@@ -153,10 +153,10 @@ AdminRouter.post('/auth/logout',protectAdmin('Admin'),logout);
  *       200:
  *         description: Admin profile data
  */
-AdminRouter.get('/admin/profile',protectAdmin('Admin'),getProfile);
+AdminRouter.get('/profile',protectAdmin(),getProfile);
 /**
  * @swagger
- * /admin/dashboard:
+ * /api/admin/dashboard:
  *   get:
  *     summary: Get dashboard analytics
  *     tags: [Admin]
@@ -166,10 +166,10 @@ AdminRouter.get('/admin/profile',protectAdmin('Admin'),getProfile);
  *       200:
  *         description: Dashboard data
  */
-AdminRouter.get('/admin/dashboard',protectAdmin('Admin'),getDashboard);
+AdminRouter.get('/dashboard',protectAdmin(),getDashboard);
 /**
  * @swagger
- * /admin/profile:
+ * /api/admin/profile:
  *   patch:
  *     summary: Update admin profile
  *     tags: [Admin]
@@ -179,10 +179,10 @@ AdminRouter.get('/admin/dashboard',protectAdmin('Admin'),getDashboard);
  *       200:
  *         description: Profile updated
  */
-AdminRouter.patch('/admin/profile',protectAdmin('Admin'),updateAdminProfile)
+AdminRouter.patch('/profile',protectAdmin(),updateAdminProfile)
 /**
  * @swagger
- * /admin/password:
+ * /api/admin/password:
  *   patch:
  *     summary: Change admin password
  *     tags: [Admin]
@@ -192,6 +192,6 @@ AdminRouter.patch('/admin/profile',protectAdmin('Admin'),updateAdminProfile)
  *       200:
  *         description: Password updated
  */
-AdminRouter.patch('/admin/password',protectAdmin('Admin'),validateChangePassword,changePassword);
+AdminRouter.patch('password',protectAdmin(),validateChangePassword,changePassword);
 
 module.exports=AdminRouter;
