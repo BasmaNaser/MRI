@@ -59,36 +59,52 @@ async function signupController(req, res) {
         res.status(500).json({ success: false, message: err.message });
     }
 }
+// edit
 async function loginController(req, res) {
     try {
         const { emailOrUsername, password } = req.body;
-        if (!emailOrUsername || !password)
-            return res.status(400).json({ message: 'Email or Username and Password Required!' });
-        let user = await User.findOne({ email:emailOrUsername });
-        if (!user)
-            user=await User.findOne({username:emailOrUsername});
-        if (!user)
-            return res.status(401).json({ message: 'Invalid Username Or Password1' });
-        const isMatch = await comparePassword(password, user.password);
-        if (!isMatch)
-            return res.status(400).json({ message: 'Invalid Username Or Password2' });
-        const patient=await Patient.findOne({user:user._id});
-        const accessToken = createAccessToken(user._id, user.role);
-        const refreshToken = createRefreshToken(user._id, user.role);
-        res.cookie('refreshToken', refreshToken,
-            {
-                httpOnly: true
-            }
-        );
-        res.status(200).json(
-            {
-                success: true,
-                message: 'Login Successfuly',
-                data: accessToken,
-                role: user.role,
-                id:patient._id
-            }
-        )
+
+        if (!emailOrUsername || !password) {
+            return res.status(400).json({ message: 'Email/Username and Password required!' });
+        }
+        // search in user model
+        let user = await User.findOne({ email: emailOrUsername }) || await User.findOne({ username: emailOrUsername });
+        
+        //search in admin model
+        let admin = await Admin.findOne({ email: emailOrUsername });
+
+        if (!user && !admin) {
+            return res.status(401).json({ message: 'Invalid Username or Password' });
+        }
+
+        let isMatch, role, id;
+
+        if (user) {
+            isMatch = await comparePassword(password, user.password);
+            role = user.role; 
+            id = user._id;
+        } else if (admin) {
+            isMatch = await comparePassword(password, admin.password);
+            role = 'Admin';
+            id = admin._id;
+        }
+
+        if (!isMatch) {
+            return res.status(401).json({ message: 'Invalid Username Or Password' });
+        }
+
+        const accessToken = createAccessToken(id, role);
+        const refreshToken = createRefreshToken(id, role);
+
+        res.cookie('refreshToken', refreshToken, { httpOnly: true });
+
+        res.status(200).json({
+            success: true,
+            message: 'Login Successfully',
+            data: accessToken,
+            role: role
+        });
+
     } catch (error) {
         res.status(500).json(
             {
