@@ -192,6 +192,6 @@ AdminRouter.patch('/profile',protectAdmin(),updateAdminProfile)
  *       200:
  *         description: Password updated
  */
-AdminRouter.patch('password',protectAdmin(),validateChangePassword,changePassword);
+AdminRouter.patch('/password',protectAdmin(),validateChangePassword,changePassword);
 
 module.exports=AdminRouter;
