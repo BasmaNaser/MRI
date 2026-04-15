@@ -6,7 +6,6 @@ const {changePassword,updateAdminProfile,getDoctors,createDoctor,getDashboard,ge
     ,getProfile,getReports,logout,deleteDoctor,updateDoctor,updateDoctorStatus,
     viewPatient}=require('../Controllers/Admin.controller');
     //sign up only for test
-const{signupAdmin}=require('../Controllers/auth.controller')   ;
 /**
  * @swagger
  * /api/admin/doctors:
