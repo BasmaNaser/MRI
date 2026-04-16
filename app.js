@@ -9,6 +9,7 @@ const errorHandler=require('./Middleware/globalErrorHandling');
 const cors = require("cors");
 const patientRouter = require('./routes/patient.routes');
 const AdminRouter=require('./routes/Admin.routes');
+const doctorRoutes = require('./routes/doctorRoutes');
 
 app.use(cors({
   origin: ["http://localhost:5173","http://localhost:5000"],
@@ -28,6 +29,7 @@ app.use('/api-docs', swaggerUI.serve, swaggerUI.setup(swaggerSpec));
 app.use('/users',userRouter);
 app.use('/api/patient',patientRouter);
 app.use('/api/admin',AdminRouter);
+app.use('/api/doctor', doctorRoutes);
 app.use(errorHandler);
 
 module.exports=app;
