@@ -9,8 +9,7 @@ const { protect } = require('../middleware/authMiddleware');
 router.post('/register', doctorController.registerDoctor);
 router.post('/login', doctorController.loginDoctor);
 
-// --- Protected Routes (Require Token) ---
-// Note: We no longer need :doctorId in the query params since the ID comes from the Token.
+
 
 // 1. Dashboard
 router.get('/dashboard', protect, doctorController.getDashboardData);
