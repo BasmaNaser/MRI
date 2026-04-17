@@ -1,8 +1,8 @@
-const Doctor = require('../models/Doctor');
-const Patient = require('../models/Patient');
-const Report = require('../models/Report');
-const Note = require('../models/Note');
-const User = require('../models/User');
+const Doctor = require('../Models/doctor.model');
+const Patient = require('../Models/patient.model');
+const Report = require('../Models/report.model');
+const Note = require('../Models/notes.model');
+const User = require('../Models/user.model');
 const jwt = require('jsonwebtoken');
 const bcrypt = require('bcryptjs');
 
