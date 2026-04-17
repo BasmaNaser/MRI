@@ -4,7 +4,7 @@ const Report = require('../Models/report.model');
 const Note = require('../Models/notes.model');
 const User = require('../Models/user.model');
 const jwt = require('jsonwebtoken');
-const bcrypt = require('bcryptjs');
+const bcrypt = require('bcrypt');
 
 
 const generateToken = (userId) => {
