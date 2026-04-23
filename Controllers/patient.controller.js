@@ -404,23 +404,40 @@ async function getScanResultController(req, res) {
     }
 }
 
-async function downloadReportController(req, res) {
+async function downloadReportController(req, res, next) {
     try {
         const { id } = req.params;
         const user = req.user;
+
         const patient = await Patient.findOne({ user: user._id });
+
         const report = await Report.findById(id);
+
+        if (!report) {
+            return res.status(404).json({
+                success: false,
+                message: 'Report not found'
+            });
+        }
+
         if (report.patient.toString() !== patient._id.toString()) {
             return res.status(403).json({
                 success: false,
                 message: 'Unauthorized'
             });
         }
-        if (!report || !report.reportFile) {
-            return res.status(404).json({ success: false, message: 'Report file not found' });
+
+        if (!report.reportFile) {
+            return res.status(404).json({
+                success: false,
+                message: 'Report file not found'
+            });
         }
+
         const filePath = path.resolve(report.reportFile);
-        res.download(filePath);
+
+        return res.download(filePath);
+
     } catch (error) {
         next(error);
     }
