@@ -4,7 +4,7 @@ const Doctor= require('../Models/doctor.model');
 const Patient=require('../Models/patient.model');
 const Report = require('../Models/report.model');
 const MriScan = require('../Models/mriscan.model');
-const bcrypt = require('bcrypt');
+const comparePassword = require('../utils/comparePassword');
 const Hashedpassword = require('../utils/HashedPassword');
 const {validateChangePassword,updateProfileValidation}=require('../Middleware/Validation')
 const { validationResult } = require('express-validator');
@@ -455,11 +455,11 @@ const changePassword = async (req, res, next) => {
         const user = await User.findById(req.user._id);
         if (!user) return res.status(404).json({ message: "User not found" });
 
-        const isMatch = await bcrypt.compare(currentPassword, user.password);
+        const isMatch = await comparePassword(currentPassword, user.password);
         if (!isMatch) return res.status(400).json({ message: "Current password is incorrect" });
 
-        const salt = await bcrypt.genSalt(10);
-        user.password = await bcrypt.hash(newPassword, salt);
+        const HashPass = await Hashedpassword(newPassword);
+        user.password = HashPass;
         await user.save();
 
         res.json({ success: true, message: "Password updated successfully" });
