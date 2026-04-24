@@ -4,14 +4,9 @@ const Report = require('../Models/report.model');
 const Note = require('../Models/notes.model');
 const User = require('../Models/user.model');
 const jwt = require('jsonwebtoken');
-const bcrypt = require('bcrypt');
-
-
-const generateToken = (userId) => {
-    return jwt.sign({ id: userId }, process.env.JWT_SECRET || 'fallback_secret_key_123', {
-        expiresIn: '30d',
-    });
-};
+const { createAccessToken, createRefreshToken } = require('../utils/tokens');
+const Hashedpassword = require('../utils/HashedPassword');
+const comparePassword = require('../utils/comparePassword');
 
 // 0. Auth - Register Doctor
 exports.registerDoctor = async (req, res) => {
@@ -33,11 +28,13 @@ exports.registerDoctor = async (req, res) => {
             return res.status(400).json({ success: false, message: 'Doctor already exists with this email' });
         }
 
+        const HashPass = await Hashedpassword(password);
+
         // Create new user for Doctor
         user = new User({
             username: finalUsername,
             email,
-            password,
+            password: HashPass,
             profileImage,
             phone,
             role: 'Doctor'
@@ -54,16 +51,16 @@ exports.registerDoctor = async (req, res) => {
 
         await doctor.save();
 
+        const accessToken = createAccessToken(user._id, 'Doctor');
+        const refreshToken = createRefreshToken(user._id, 'Doctor');
+
+        res.cookie('refreshToken', refreshToken, { httpOnly: true });
+
         res.status(201).json({
             success: true,
-            data: {
-                id: doctor._id,
-                userId: user._id,
-                name: user.username,
-                email: user.email,
-                specialization: doctor.specialization,
-                token: generateToken(user._id)
-            }
+            message: 'Doctor Registered Successfully',
+            data: accessToken,
+            role: 'Doctor'
         });
     } catch (error) {
         res.status(500).json({ success: false, message: error.message });
@@ -84,7 +81,7 @@ exports.loginDoctor = async (req, res) => {
             return res.status(401).json({ success: false, message: 'Invalid Credentials (Email not found)' });
         }
 
-        const isMatch = await bcrypt.compare(password, user.password);
+        const isMatch = await comparePassword(password, user.password);
         if (!isMatch) {
             return res.status(401).json({ success: false, message: 'Invalid Credentials (Incorrect password)' });
         }
@@ -93,18 +90,16 @@ exports.loginDoctor = async (req, res) => {
              return res.status(403).json({ success: false, message: 'Access denied: User is not a Doctor' });
         }
 
-        const doctor = await Doctor.findOne({ user: user._id });
+        const accessToken = createAccessToken(user._id, 'Doctor');
+        const refreshToken = createRefreshToken(user._id, 'Doctor');
+
+        res.cookie('refreshToken', refreshToken, { httpOnly: true });
 
         res.json({
             success: true,
-            data: {
-                id: doctor ? doctor._id : null,
-                userId: user._id,
-                name: user.username,
-                email: user.email,
-                specialization: doctor ? doctor.specialization : null,
-                token: generateToken(user._id)
-            }
+            message: 'Login Successfully',
+            data: accessToken,
+            role: 'Doctor'
         });
     } catch (error) {
          res.status(500).json({ success: false, message: error.message });
@@ -536,12 +531,13 @@ exports.changePassword = async (req, res) => {
         }
 
         // Check if old password matches
-        const isMatch = await bcrypt.compare(oldPassword, user.password);
+        const isMatch = await comparePassword(oldPassword, user.password);
         if (!isMatch) {
             return res.status(401).json({ success: false, message: 'Incorrect old password' });
         }
 
-        user.password = newPassword;
+        const HashPass = await Hashedpassword(newPassword);
+        user.password = HashPass;
         await user.save();
 
         res.status(200).json({ success: true, message: 'Password changed successfully' });
