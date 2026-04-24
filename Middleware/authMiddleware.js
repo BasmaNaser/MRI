@@ -1,6 +1,7 @@
 const jwt = require('jsonwebtoken');
 const User = require('../Models/user.model');
 const Doctor = require('../Models/doctor.model');
+const Patient = require('../Models/patient.model');
 
 const protect = async (req, res, next) => {
     let token;
@@ -10,29 +11,31 @@ const protect = async (req, res, next) => {
             // Get token from header
             token = req.headers.authorization.split(' ')[1];
 
-            // Verify token
-            const decoded = jwt.verify(token, process.env.JWT_SECRET || 'fallback_secret_key_123');
+            // Verify token using the unified secret
+            const decoded = jwt.verify(token, process.env.ACCESS_TOKEN_SECRET);
 
-            // Find user id from token
-            // Their token payload likely uses { id: user._id } or { userId: user._id }
-            const userId = decoded.userId || decoded.id; 
+            // The unified token uses user_id
+            const userId = decoded.user_id;
 
             const user = await User.findById(userId).select('-password');
             if (!user) {
                 return res.status(401).json({ success: false, message: 'Not authorized, user not found' });
             }
 
-            // Find associated doctor
-            const doctor = await Doctor.findOne({ user: user._id });
-            if (!doctor) {
-                return res.status(401).json({ success: false, message: 'Not authorized, doctor profile not found' });
-            }
-
             req.user = user;
-            req.doctor = doctor;
+
+            // Optional: Attach specialized profile based on role
+            if (user.role === 'Doctor') {
+                const doctor = await Doctor.findOne({ user: user._id });
+                req.doctor = doctor;
+            } else if (user.role === 'Patient') {
+                const patient = await Patient.findOne({ user: user._id });
+                req.patient = patient;
+            }
 
             next();
         } catch (error) {
+            console.error('Auth Middleware Error:', error.message);
             res.status(401).json({ success: false, message: 'Not authorized, token failed' });
         }
     }
@@ -42,4 +45,16 @@ const protect = async (req, res, next) => {
     }
 };
 
-module.exports = { protect };
+const restrictTo = (...roles) => {
+    return (req, res, next) => {
+        if (!roles.includes(req.user.role)) {
+            return res.status(403).json({
+                success: false,
+                message: 'You do not have permission to perform this action'
+            });
+        }
+        next();
+    };
+};
+
+module.exports = { protect, restrictTo };
