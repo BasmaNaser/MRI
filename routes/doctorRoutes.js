@@ -20,7 +20,8 @@ const { protect } = require('../Middleware/authMiddleware');
  *   post:
  *     summary: Register a new doctor
  *     tags: [Doctors]
- *     security: []
+ *     security:
+ *       - bearerAuth: []
  *     requestBody:
  *       required: true
  *       content:
@@ -53,7 +54,8 @@ router.post('/register', doctorController.registerDoctor);
  *   post:
  *     summary: Login for doctors
  *     tags: [Doctors]
- *     security: []
+ *     security:
+ *       - bearerAuth: []
  *     requestBody:
  *       required: true
  *       content:
