@@ -2,16 +2,57 @@ const User = require('../Models/user.model');
 const Hashedpassword = require('../utils/HashedPassword');
 const { createAccessToken, createAutoToken, createRefreshToken, createResetToken } = require('../utils/tokens');
 const comparePassword = require('../utils/comparePassword')
-const {sendTestEmail,sendEmailRestPassword} = require('../utils/sendmail');
 const Patient=require('../Models/patient.model');
 const Doctor= require('../Models/doctor.model')
 const Admin= require('../Models/admin.model');
 const jwt= require('jsonwebtoken');
-const patientModel = require('../Models/patient.model');
 require('dotenv').config();
+
+async function findAuthAccount(emailOrUsername) {
+    const user = await User.findOne({
+        $or: [
+            { email: emailOrUsername },
+            { username: emailOrUsername }
+        ]
+    });
+
+    if (user) {
+        return { account: user, role: user.role };
+    }
+
+    const admin = await Admin.findOne({ email: emailOrUsername });
+    if (admin) {
+        return { account: admin, role: 'Admin' };
+    }
+
+    return { account: null, role: null };
+}
+
+async function findAccountByPayload(payload) {
+    if (payload.role === 'Admin') {
+        const admin = await Admin.findById(payload.user_id);
+        return { account: admin, role: 'Admin' };
+    }
+
+    const user = await User.findById(payload.user_id);
+    return { account: user, role: user?.role };
+}
+
 async function signupController(req, res) {
     try {
-        const { username, email, password, confirmedPassword, role } = req.body;
+        const {
+            username,
+            email,
+            password,
+            confirmedPassword,
+            role,
+            specialization,
+            experienceYears,
+            workplace,
+            profileImage,
+            phone,
+            gender
+        } = req.body;
         if (!username || !email || !password || !confirmedPassword || !role)
             return res.status(400).json('All Data Required!');
         const emailExist = await User.findOne({ email });
@@ -42,12 +83,20 @@ async function signupController(req, res) {
                 username,
                 email,
                 password: HashPass,
-                role
+                role,
+                profileImage,
+                phone,
+                gender
             });
             if(role==='Patient')
                 await Patient.create({user:newUser._id})
             else if(role==='Doctor')
-                await Doctor.create({user:newUser._id})
+                await Doctor.create({
+                    user:newUser._id,
+                    specialization,
+                    experienceYears,
+                    workplace
+                })
 
         const autoToken = createAutoToken(newUser._id, role);
         const userData = await User.find({ email }).select('username email role -_id');
@@ -63,39 +112,26 @@ async function signupController(req, res) {
 // edit
 async function loginController(req, res) {
     try {
-        const { emailOrUsername, password } = req.body;
+        const emailOrUsername = req.body.emailOrUsername || req.body.email || req.body.username;
+        const { password } = req.body;
 
         if (!emailOrUsername || !password) {
             return res.status(400).json({ message: 'Email/Username and Password required!' });
         }
-        // search in user model
-        let user = await User.findOne({ email: emailOrUsername }) || await User.findOne({ username: emailOrUsername });
-        
-        //search in admin model
-        let admin = await Admin.findOne({ email: emailOrUsername });
+        const { account, role } = await findAuthAccount(emailOrUsername);
 
-        if (!user && !admin) {
+        if (!account) {
             return res.status(401).json({ message: 'Invalid Username or Password' });
         }
 
-        let isMatch, role, id;
-
-        if (user) {
-            isMatch = await comparePassword(password, user.password);
-            role = user.role; 
-            id = user._id;
-        } else if (admin) {
-            isMatch = await comparePassword(password, admin.password);
-            role = 'Admin';
-            id = admin._id;
-        }
+        const isMatch = await comparePassword(password, account.password);
 
         if (!isMatch) {
             return res.status(401).json({ message: 'Invalid Username Or Password' });
         }
 
-        const accessToken = createAccessToken(id, role);
-        const refreshToken = createRefreshToken(id, role);
+        const accessToken = createAccessToken(account._id, role);
+        const refreshToken = createRefreshToken(account._id, role);
 
         res.cookie('refreshToken', refreshToken, { httpOnly: true });
 
@@ -103,6 +139,7 @@ async function loginController(req, res) {
             success: true,
             message: 'Login Successfully',
             data: accessToken,
+            token: accessToken,
             role: role
         });
 
@@ -122,17 +159,18 @@ async function tokenLoginController(req, res) {
             return res.status(401).json({ success: false, message: 'Token missing!' });
         const token = authHeader.split(' ')[1];
         const decode = jwt.verify(token, process.env.ACCESS_TOKEN_SECRET);
-        const user = await User.findById(decode.user_id);
-        if (!user)
-            return res.status(404).json({ success: false, message: 'User Not Found' });
-        const accessToken = createAccessToken(user._id, user.role);
+        const { account, role } = await findAccountByPayload(decode);
+        if (!account)
+            return res.status(404).json({ success: false, message: 'Account Not Found' });
+        const accessToken = createAccessToken(account._id, role);
         
         res.status(200).json(
             {
                 success: true,
                 message: 'Token valid. Auto-login successful!',
                 data: accessToken,
-                role: user.role
+                token: accessToken,
+                role
             }
         )
     } catch (error) {
@@ -148,11 +186,11 @@ try {
         if(!token)
             return res.status(401).json({success:false,message:'Refresh Token missing !'});
         const decode=jwt.verify(token,process.env.REFRESH_TOKEN_SECRET) ;
-        const user= await User.findById(decode.user_id);
-        if(!user)
-            return res.status(404).json({success:false,message:'User Not Found'});
-        const accessToken=createAccessToken(user._id,user.role);
-        const refreshToken=createRefreshToken(user._id,user.role);
+        const { account, role } = await findAccountByPayload(decode);
+        if(!account)
+            return res.status(404).json({success:false,message:'Account Not Found'});
+        const accessToken=createAccessToken(account._id,role);
+        const refreshToken=createRefreshToken(account._id,role);
         res.cookie('refreshToken',refreshToken,
             {
                 httpOnly:true
@@ -163,7 +201,8 @@ try {
                 success:true,
                 message:'Token refreshed Successfuly',
                 data:accessToken,
-                role:user.role
+                token:accessToken,
+                role
             }
         )
 } catch (error) {
@@ -199,21 +238,20 @@ async function resetPasswordController(req,res)
         if(password!==confirmedPassword)
             return res.status(400).json({success:false,message:`Password don't match`});
         const decode = jwt.verify(token,process.env.RESET_TOKEN_SECRET);
-        const user = await User.findById(decode.user_id);
+        const { account: user, role } = await findAccountByPayload(decode);
         if(!user)
-            return res.status(404).json({success:false,message:'User Not Found!'})
+            return res.status(404).json({success:false,message:'Account Not Found!'})
         const HashedPass= await Hashedpassword(password);
         user.password=HashedPass;
-        user.save();
-        res.status(200).json({success:true,message:'Password Updated Successfuly ✅',data:user.role},)
-        token=null;
+        await user.save();
+        return res.status(200).json({success:true,message:'Password Updated Successfuly',data:role});
     } catch (error) {
         res.status(401).json({success:false,message:error.message})
     }
 }
 async function getAllUsers(req,res)
 {
-    const users=await User.find();
+    const users=await User.find().select('-password');
     if(!users)
         return res.status(404).json({message:'No Users Found'});
     res.json({message:'There User',data:users})
