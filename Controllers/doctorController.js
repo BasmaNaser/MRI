@@ -3,108 +3,8 @@ const Patient = require('../Models/patient.model');
 const Report = require('../Models/report.model');
 const Note = require('../Models/notes.model');
 const User = require('../Models/user.model');
-const jwt = require('jsonwebtoken');
-const { createAccessToken, createRefreshToken } = require('../utils/tokens');
+const bcrypt = require('bcrypt');
 const Hashedpassword = require('../utils/HashedPassword');
-const comparePassword = require('../utils/comparePassword');
-
-// 0. Auth - Register Doctor
-exports.registerDoctor = async (req, res) => {
-    try {
-        const { username, name, email, password, specialization, profileImage, experienceYears, phone } = req.body;
-
-        if (!name && !username) {
-             return res.status(400).json({ success: false, message: 'Please provide all required fields' });
-        }
-        
-        const finalUsername = username || name;
-
-        if (!finalUsername || !email || !password) {
-            return res.status(400).json({ success: false, message: 'Please provide all required fields' });
-        }
-
-        let user = await User.findOne({ email });
-        if (user) {
-            return res.status(400).json({ success: false, message: 'Doctor already exists with this email' });
-        }
-
-        const HashPass = await Hashedpassword(password);
-
-        // Create new user for Doctor
-        user = new User({
-            username: finalUsername,
-            email,
-            password: HashPass,
-            profileImage,
-            phone,
-            role: 'Doctor'
-        });
-
-        await user.save();
-
-        // Create associated doctor profile
-        const doctor = new Doctor({
-            user: user._id,
-            specialization,
-            experienceYears
-        });
-
-        await doctor.save();
-
-        const accessToken = createAccessToken(user._id, 'Doctor');
-        const refreshToken = createRefreshToken(user._id, 'Doctor');
-
-        res.cookie('refreshToken', refreshToken, { httpOnly: true });
-
-        res.status(201).json({
-            success: true,
-            message: 'Doctor Registered Successfully',
-            data: accessToken,
-            role: 'Doctor'
-        });
-    } catch (error) {
-        res.status(500).json({ success: false, message: error.message });
-    }
-};
-
-// 0. Auth - Login Doctor
-exports.loginDoctor = async (req, res) => {
-    try {
-        const { email, password } = req.body;
-
-        if (!email || !password) {
-            return res.status(400).json({ success: false, message: 'Please provide email and password' });
-        }
-
-        const user = await User.findOne({ email });
-        if (!user) {
-            return res.status(401).json({ success: false, message: 'Invalid Credentials (Email not found)' });
-        }
-
-        const isMatch = await comparePassword(password, user.password);
-        if (!isMatch) {
-            return res.status(401).json({ success: false, message: 'Invalid Credentials (Incorrect password)' });
-        }
-
-        if (user.role !== 'Doctor') {
-             return res.status(403).json({ success: false, message: 'Access denied: User is not a Doctor' });
-        }
-
-        const accessToken = createAccessToken(user._id, 'Doctor');
-        const refreshToken = createRefreshToken(user._id, 'Doctor');
-
-        res.cookie('refreshToken', refreshToken, { httpOnly: true });
-
-        res.json({
-            success: true,
-            message: 'Login Successfully',
-            data: accessToken,
-            role: 'Doctor'
-        });
-    } catch (error) {
-         res.status(500).json({ success: false, message: error.message });
-    }
-};
 
 // 1. Dashboard API
 exports.getDashboardData = async (req, res) => {
@@ -253,10 +153,11 @@ exports.addPatient = async (req, res) => {
         // Check if user exists
         let user = await User.findOne({ email });
         if (!user) {
+            const hashedPassword = await Hashedpassword(password);
             user = new User({
                 username: finalUsername,
                 email,
-                password,
+                password: hashedPassword,
                 phone,
                 gender,
                 role: 'Patient'
@@ -523,7 +424,8 @@ exports.deleteNote = async (req, res) => {
 // 11. Profile - Change Password
 exports.changePassword = async (req, res) => {
     try {
-        const { oldPassword, newPassword } = req.body;
+        const oldPassword = req.body.oldPassword || req.body.currentPassword;
+        const { newPassword } = req.body;
         const user = req.user; // Provided by auth middleware
 
         if (!oldPassword || !newPassword) {
@@ -531,13 +433,12 @@ exports.changePassword = async (req, res) => {
         }
 
         // Check if old password matches
-        const isMatch = await comparePassword(oldPassword, user.password);
+        const isMatch = await bcrypt.compare(oldPassword, user.password);
         if (!isMatch) {
             return res.status(401).json({ success: false, message: 'Incorrect old password' });
         }
 
-        const HashPass = await Hashedpassword(newPassword);
-        user.password = HashPass;
+        user.password = await Hashedpassword(newPassword);
         await user.save();
 
         res.status(200).json({ success: true, message: 'Password changed successfully' });
