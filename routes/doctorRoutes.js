@@ -1,7 +1,9 @@
 const express = require('express');
 const router = express.Router();
 const doctorController = require('../Controllers/doctorController');
-const { protect } = require('../Middleware/authMiddleware');
+const protect = require('../Middleware/protect');
+
+const doctorOnly = protect('Doctor');
 
 /**
  * @swagger
@@ -11,68 +13,6 @@ const { protect } = require('../Middleware/authMiddleware');
  */
 
 // Base route: /api/doctor
-
-// --- Public Routes ---
-
-/**
- * @swagger
- * /api/doctor/register:
- *   post:
- *     summary: Register a new doctor
- *     tags: [Doctors]
- *     security:
- *       - bearerAuth: []
- *     requestBody:
- *       required: true
- *       content:
- *         application/json:
- *           schema:
- *             type: object
- *             required: [name, email, password, specialty]
- *             properties:
- *               name:
- *                 type: string
- *               email:
- *                 type: string
- *               password:
- *                 type: string
- *               specialty:
- *                 type: string
- *               subspecialty:
- *                 type: string
- *               phone:
- *                 type: string
- *     responses:
- *       201:
- *         description: Doctor created successfully
- */
-router.post('/register', doctorController.registerDoctor);
-
-/**
- * @swagger
- * /api/doctor/login:
- *   post:
- *     summary: Login for doctors
- *     tags: [Doctors]
- *     security:
- *       - bearerAuth: []
- *     requestBody:
- *       required: true
- *       content:
- *         application/json:
- *           schema:
- *             type: object
- *             required: [email, password]
- *             properties:
- *               email:
- *                 type: string
- *               password:
- *                 type: string
- *     responses:
- *       200:
- *         description: Login successful
- */
-router.post('/login', doctorController.loginDoctor);
 
 // --- Protected Routes (Require Token) ---
 // Note: We no longer need :doctorId in the query params since the ID comes from the Token.
@@ -84,11 +24,13 @@ router.post('/login', doctorController.loginDoctor);
  *   get:
  *     summary: Get doctor's dashboard data
  *     tags: [Doctors]
+ *     security:
+ *       - bearerAuth: []
  *     responses:
  *       200:
  *         description: Dashboard data retrieved successfully
  */
-router.get('/dashboard', protect, doctorController.getDashboardData);
+router.get('/dashboard', doctorOnly, doctorController.getDashboardData);
 
 // 2. Patients List
 /**
@@ -97,12 +39,16 @@ router.get('/dashboard', protect, doctorController.getDashboardData);
  *   get:
  *     summary: Get all patients for the authenticated doctor
  *     tags: [Doctors]
+ *     security:
+ *       - bearerAuth: []
  *     responses:
  *       200:
  *         description: List of patients
  *   post:
  *     summary: Add a patient
  *     tags: [Doctors]
+ *     security:
+ *       - bearerAuth: []
  *     requestBody:
  *       required: true
  *       content:
@@ -123,8 +69,8 @@ router.get('/dashboard', protect, doctorController.getDashboardData);
  *       201:
  *         description: Patient added successfully
  */
-router.get('/patients', protect, doctorController.getAllPatients);
-router.post('/patients', protect, doctorController.addPatient);
+router.get('/patients', doctorOnly, doctorController.getAllPatients);
+router.post('/patients', doctorOnly, doctorController.addPatient);
 
 // 3. View Details Patient
 /**
@@ -133,6 +79,8 @@ router.post('/patients', protect, doctorController.addPatient);
  *   get:
  *     summary: Get details of a specific patient
  *     tags: [Doctors]
+ *     security:
+ *       - bearerAuth: []
  *     parameters:
  *       - in: path
  *         name: patientId
@@ -144,7 +92,7 @@ router.post('/patients', protect, doctorController.addPatient);
  *       200:
  *         description: Patient details
  */
-router.get('/patients/:patientId', protect, doctorController.getPatientDetails);
+router.get('/patients/:patientId', doctorOnly, doctorController.getPatientDetails);
 
 // 4. Patient Reports
 /**
@@ -153,6 +101,8 @@ router.get('/patients/:patientId', protect, doctorController.getPatientDetails);
  *   get:
  *     summary: Get all reports for a specific patient
  *     tags: [Doctors]
+ *     security:
+ *       - bearerAuth: []
  *     parameters:
  *       - in: path
  *         name: patientId
@@ -163,7 +113,7 @@ router.get('/patients/:patientId', protect, doctorController.getPatientDetails);
  *       200:
  *         description: Patient reports
  */
-router.get('/patients/:patientId/reports', protect, doctorController.getPatientReports);
+router.get('/patients/:patientId/reports', doctorOnly, doctorController.getPatientReports);
 
 // 5. Send Recommendation
 /**
@@ -172,6 +122,8 @@ router.get('/patients/:patientId/reports', protect, doctorController.getPatientR
  *   post:
  *     summary: Create a recommendation for a patient
  *     tags: [Doctors]
+ *     security:
+ *       - bearerAuth: []
  *     parameters:
  *       - in: path
  *         name: patientId
@@ -192,7 +144,7 @@ router.get('/patients/:patientId/reports', protect, doctorController.getPatientR
  *       201:
  *         description: Recommendation created successfully
  */
-router.post('/patients/:patientId/recommendation', protect, doctorController.createRecommendation);
+router.post('/patients/:patientId/recommendation', doctorOnly, doctorController.createRecommendation);
 
 // 6. Doctor Profile
 /**
@@ -201,11 +153,13 @@ router.post('/patients/:patientId/recommendation', protect, doctorController.cre
  *   get:
  *     summary: Get doctor's profile
  *     tags: [Doctors]
+ *     security:
+ *       - bearerAuth: []
  *     responses:
  *       200:
  *         description: Doctor profile data
  */
-router.get('/profile', protect, doctorController.getDoctorProfile);
+router.get('/profile', doctorOnly, doctorController.getDoctorProfile);
 
 // 7. Notes
 /**
@@ -214,6 +168,8 @@ router.get('/profile', protect, doctorController.getDoctorProfile);
  *   post:
  *     summary: Add a new note
  *     tags: [Doctors]
+ *     security:
+ *       - bearerAuth: []
  *     requestBody:
  *       required: true
  *       content:
@@ -232,12 +188,14 @@ router.get('/profile', protect, doctorController.getDoctorProfile);
  *   get:
  *     summary: Get all notes
  *     tags: [Doctors]
+ *     security:
+ *       - bearerAuth: []
  *     responses:
  *       200:
  *         description: List of notes
  */
-router.post('/notes', protect, doctorController.addNote);
-router.get('/notes', protect, doctorController.getNotes);
+router.post('/notes', doctorOnly, doctorController.addNote);
+router.get('/notes', doctorOnly, doctorController.getNotes);
 
 /**
  * @swagger
@@ -245,6 +203,8 @@ router.get('/notes', protect, doctorController.getNotes);
  *   put:
  *     summary: Update a note
  *     tags: [Doctors]
+ *     security:
+ *       - bearerAuth: []
  *     parameters:
  *       - in: path
  *         name: noteId
@@ -268,6 +228,8 @@ router.get('/notes', protect, doctorController.getNotes);
  *   delete:
  *     summary: Delete a note
  *     tags: [Doctors]
+ *     security:
+ *       - bearerAuth: []
  *     parameters:
  *       - in: path
  *         name: noteId
@@ -278,8 +240,8 @@ router.get('/notes', protect, doctorController.getNotes);
  *       200:
  *         description: Note deleted
  */
-router.put('/notes/:noteId', protect, doctorController.updateNote);
-router.delete('/notes/:noteId', protect, doctorController.deleteNote);
+router.put('/notes/:noteId', doctorOnly, doctorController.updateNote);
+router.delete('/notes/:noteId', doctorOnly, doctorController.deleteNote);
 
 // 8. Account Settings
 /**
@@ -288,6 +250,8 @@ router.delete('/notes/:noteId', protect, doctorController.deleteNote);
  *   put:
  *     summary: Change doctor password
  *     tags: [Doctors]
+ *     security:
+ *       - bearerAuth: []
  *     requestBody:
  *       required: true
  *       content:
@@ -304,7 +268,7 @@ router.delete('/notes/:noteId', protect, doctorController.deleteNote);
  *       200:
  *         description: Password updated
  */
-router.put('/profile/change-password', protect, doctorController.changePassword);
+router.put('/profile/change-password', doctorOnly, doctorController.changePassword);
 
 /**
  * @swagger
@@ -312,11 +276,13 @@ router.put('/profile/change-password', protect, doctorController.changePassword)
  *   delete:
  *     summary: Delete doctor account
  *     tags: [Doctors]
+ *     security:
+ *       - bearerAuth: []
  *     responses:
  *       200:
  *         description: Account deleted
  */
-router.delete('/profile/delete-account', protect, doctorController.deleteAccount);
+router.delete('/profile/delete-account', doctorOnly, doctorController.deleteAccount);
 
 // 9. Doctor Reports (All reports for the doctor)
 /**
@@ -325,11 +291,13 @@ router.delete('/profile/delete-account', protect, doctorController.deleteAccount
  *   get:
  *     summary: Get all reports linked to this doctor
  *     tags: [Doctors]
+ *     security:
+ *       - bearerAuth: []
  *     responses:
  *       200:
  *         description: List of reports
  */
-router.get('/reports', protect, doctorController.getAllReports);
+router.get('/reports', doctorOnly, doctorController.getAllReports);
 
 // 10. AI Recommendations (Inbox for review)
 /**
@@ -338,11 +306,13 @@ router.get('/reports', protect, doctorController.getAllReports);
  *   get:
  *     summary: Get pending AI recommendations
  *     tags: [Doctors]
+ *     security:
+ *       - bearerAuth: []
  *     responses:
  *       200:
  *         description: List of pending AI recommendations
  */
-router.get('/recommendations', protect, doctorController.getPendingRecommendations);
+router.get('/recommendations', doctorOnly, doctorController.getPendingRecommendations);
 
 /**
  * @swagger
@@ -350,6 +320,8 @@ router.get('/recommendations', protect, doctorController.getPendingRecommendatio
  *   put:
  *     summary: Update an AI recommendation status
  *     tags: [Doctors]
+ *     security:
+ *       - bearerAuth: []
  *     parameters:
  *       - in: path
  *         name: reportId
@@ -370,6 +342,7 @@ router.get('/recommendations', protect, doctorController.getPendingRecommendatio
  *       200:
  *         description: Recommendation status updated
  */
-router.put('/recommendations/:reportId', protect, doctorController.updateRecommendationStatus);
+router.put('/recommendations/:reportId', doctorOnly, doctorController.updateRecommendationStatus);
 
 module.exports = router;
+
