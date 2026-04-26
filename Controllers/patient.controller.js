@@ -496,11 +496,15 @@ async function getLatestRecommendationController(req, res) {
     }
 }
 
-async function downloadLatestRecommendationController(req, res) {
+async function downloadLatestRecommendationController(req, res, next) {
     try {
 
         const user = req.user;
         const patient = await Patient.findOne({ user: user._id });
+        if (!patient) {
+            return res.status(404).json({ success: false, message: 'Patient not found' });
+        }
+
         const latestReport = await Report.findOne({ patient: patient._id })
             .sort({ reportDate: -1 });
         if (!latestReport || !latestReport.reportFile) {
@@ -508,8 +512,7 @@ async function downloadLatestRecommendationController(req, res) {
         }
 
         const filePath = path.resolve(latestReport.reportFile);
-        res.download(filePath);
-            return res.status(200).json({ success: true, message: 'File Download Successfuly' });
+        return res.download(filePath);
 
 
 
