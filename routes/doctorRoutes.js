@@ -136,7 +136,7 @@ router.get('/patients/:patientId/reports', doctorOnly, doctorController.getPatie
  *         application/json:
  *           schema:
  *             type: object
- *             required: [text]
+ *             required: [recommendation, scan]
  *             properties:
  *               text:
  *                 type: string
@@ -345,4 +345,3 @@ router.get('/recommendations', doctorOnly, doctorController.getPendingRecommenda
 router.put('/recommendations/:reportId', doctorOnly, doctorController.updateRecommendationStatus);
 
 module.exports = router;
-
