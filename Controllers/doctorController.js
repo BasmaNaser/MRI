@@ -1,6 +1,7 @@
 const Doctor = require('../Models/doctor.model');
 const Patient = require('../Models/patient.model');
 const Report = require('../Models/report.model');
+const MriScan = require('../Models/mriscan.model');
 const Note = require('../Models/notes.model');
 const User = require('../Models/user.model');
 const bcrypt = require('bcrypt');
@@ -98,7 +99,11 @@ exports.getAllPatients = async (req, res) => {
 
                 const recentReport = await Report.findOne({ patient: patient._id })
                                                  .populate('tumorName')
+                                                 .populate('scan')
                                                  .sort({ reportDate: -1 });
+
+                const latestScan = await MriScan.findOne({ patient: patient._id })
+                                                .sort({ scanDate: -1 });
                 
                 let tType = null;
                 let conf = '--';
@@ -108,6 +113,8 @@ exports.getAllPatients = async (req, res) => {
                     tType = (recentReport.tumorName && recentReport.tumorName.tumorName) ? recentReport.tumorName.tumorName : (recentReport.tumorDetected ? 'Unknown Tumor' : 'Normal');
                     conf = recentReport.confidenceScore != null ? recentReport.confidenceScore + '%' : '--';
                     scanDate = recentReport.reportDate;
+                } else if (latestScan) {
+                    scanDate = latestScan.scanDate;
                 }
 
                 return {
@@ -199,7 +206,11 @@ exports.getPatientDetails = async (req, res) => {
 
         const recentReport = await Report.findOne({ patient: patientId, doctor: doctorId })
                                          .populate('tumorName')
+                                         .populate('scan')
                                          .sort({ reportDate: -1 });
+
+        const latestScan = await MriScan.findOne({ patient: patientId })
+                                        .sort({ scanDate: -1 });
 
         res.status(200).json({
             success: true,
@@ -208,10 +219,10 @@ exports.getPatientDetails = async (req, res) => {
                     id: `#BRN${patient._id.toString().slice(-4).toUpperCase()}`,
                     name: patient.user ? patient.user.username : 'Unknown',
                     age: patient.user ? patient.user.age : null,
-                    lastScan: recentReport ? recentReport.reportDate : null
+                    lastScan: recentReport ? recentReport.reportDate : (latestScan ? latestScan.scanDate : null)
                 },
                 mriScanAnalysis: {
-                    originalScan: recentReport ? recentReport.originalScan : 'Not available',
+                    originalScan: recentReport ? recentReport.originalScan : (latestScan ? latestScan.scanImage : 'Not available'),
                     segmentedScan: recentReport ? recentReport.segmentedScan : 'Not available'
                 },
                 aiAnalysisResult: {
@@ -240,6 +251,7 @@ exports.getPatientReports = async (req, res) => {
 
         const reports = await Report.find({ patient: patientId, doctor: doctorId })
                                     .populate('tumorName')
+                                    .populate('scan')
                                     .sort({ reportDate: -1 })
                                     .select('-__v');
 
@@ -265,7 +277,7 @@ exports.getPatientReports = async (req, res) => {
 exports.createRecommendation = async (req, res) => {
     try {
         const patientId = req.params.patientId;
-        const { recommendation, tumorDetected, originalScan, segmentedScan, confidenceScore, tumorName, reportFile } = req.body;
+        const { recommendation, tumorDetected, originalScan, segmentedScan, confidenceScore, tumorName, reportFile, scan } = req.body;
         const doctorId = req.doctor._id; 
         
         const patient = await Patient.findOne({ _id: patientId, assigneddoctor: doctorId });
@@ -276,6 +288,7 @@ exports.createRecommendation = async (req, res) => {
         const newReport = new Report({
             patient: patientId,
             doctor: doctorId,
+            scan,
             originalScan,
             segmentedScan,
             tumorDetected,
@@ -482,6 +495,7 @@ exports.getAllReports = async (req, res) => {
                                          populate: { path: 'user', select: 'username' }
                                      })
                                     .populate('tumorName')
+                                    .populate('scan')
                                     .sort({ reportDate: -1 });
 
         const formattedReports = reports.map(r => ({
