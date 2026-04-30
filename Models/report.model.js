@@ -4,8 +4,7 @@ const reportSchema = new mongoose.Schema(
 {
     scan:{
         type:mongoose.Schema.Types.ObjectId,
-        ref:'MriScan',
-        required:true
+        ref:'MriScan'
     },
 
     patient:{
@@ -33,12 +32,33 @@ const reportSchema = new mongoose.Schema(
         ref:'Tumortype'
     },
 
+    originalScan:{
+        type:String
+    },
+
+    segmentedScan:{
+        type:String
+    },
+
+    aiRecommendation:{
+        type:String
+    },
+
     recommendation:{
         type:String
     },
 
     reportFile:{
         type:String
+    },
+
+    doctorComment:{
+        type:String
+    },
+
+    status:{
+        type:String,
+        default:'Pending Review'
     },
 
     reportDate:{
