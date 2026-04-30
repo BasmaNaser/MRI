@@ -114,6 +114,7 @@ exports.getAllPatients = async (req, res) => {
                     conf = recentReport.confidenceScore != null ? recentReport.confidenceScore + '%' : '--';
                     scanDate = recentReport.reportDate;
                 } else if (latestScan) {
+                    tType = "Pending analysis";
                     scanDate = latestScan.scanDate;
                 }
 
@@ -124,7 +125,8 @@ exports.getAllPatients = async (req, res) => {
                     status: patient.status,
                     tumorType: tType,
                     confidence: conf,
-                    scanDate: scanDate
+                    scanDate: scanDate,
+                    scan: latestScan ? latestScan.scanImage : null,
                 };
             })
         );
@@ -296,10 +298,15 @@ exports.createRecommendation = async (req, res) => {
             tumorName, 
             recommendation,       // standard MRI
             aiRecommendation: recommendation, // local GUI dashboard
-            reportFile
+            reportFile,
         });
 
         await newReport.save();
+
+        // Update scan status to Reviewed if scan ID is provided
+        if (scan) {
+            await MriScan.findByIdAndUpdate(scan, { status: "Reviewed" });
+        }
         
         res.status(201).json({
             success: true,
