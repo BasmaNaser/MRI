@@ -2,6 +2,7 @@ const express = require('express');
 const router = express.Router();
 const doctorController = require('../Controllers/doctorController');
 const protect = require('../Middleware/protect');
+const { updateProfileValidation } = require('../Middleware/Validation');
 
 const doctorOnly = protect('Doctor');
 
@@ -160,6 +161,44 @@ router.post('/patients/:patientId/recommendation', doctorOnly, doctorController.
  *         description: Doctor profile data
  */
 router.get('/profile', doctorOnly, doctorController.getDoctorProfile);
+
+/**
+ * @swagger
+ * /api/doctor/profile:
+ *   put:
+ *     summary: Update doctor's profile
+ *     tags: [Doctors]
+ *     security:
+ *       - bearerAuth: []
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             properties:
+ *               name:
+ *                 type: string
+ *               email:
+ *                 type: string
+ *               specialization:
+ *                 type: string
+ *               experienceYears:
+ *                 type: number
+ *               workplace:
+ *                 type: string
+ *               phone:
+ *                 type: string
+ *               address:
+ *                 type: string
+ *               gender:
+ *                 type: string
+ *                 enum: [Male, Female, Other]
+ *     responses:
+ *       200:
+ *         description: Profile updated successfully
+ */
+router.put('/profile', doctorOnly, updateProfileValidation, doctorController.updateDoctorProfile);
 
 // 7. Notes
 /**
