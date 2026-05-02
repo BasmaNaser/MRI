@@ -44,6 +44,11 @@ const updateProfileValidation = [
         .isLength({ min: 3 })
         .withMessage('Username must be at least 3 characters'),
 
+    body('name')
+        .optional()
+        .isLength({ min: 3 })
+        .withMessage('Name must be at least 3 characters'),
+
     body('email')
         .optional()
         .isEmail()
