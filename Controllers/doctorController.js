@@ -347,6 +347,49 @@ exports.getDoctorProfile = async (req, res) => {
     }
 };
 
+// 6.5 Update Profile
+exports.updateDoctorProfile = async (req, res) => {
+    try {
+        const { name, email, specialization, experienceYears, workplace, phone, address, gender } = req.body;
+        const user = req.user;
+        const doctor = req.doctor;
+
+        // Update User fields
+        if (name) user.username = name;
+        if (email) user.email = email;
+        if (phone) user.phone = phone;
+        if (address) user.address = address;
+        if (gender) user.gender = gender;
+
+        // Update Doctor fields
+        if (specialization) doctor.specialization = specialization;
+        if (experienceYears !== undefined) doctor.experienceYears = experienceYears;
+        if (workplace) doctor.workplace = workplace;
+
+        await user.save();
+        await doctor.save();
+
+        res.status(200).json({
+            success: true,
+            message: 'Profile updated successfully',
+            data: {
+                _id: doctor._id,
+                name: user.username,
+                email: user.email,
+                profileImage: user.profileImage,
+                specialization: doctor.specialization,
+                experienceYears: doctor.experienceYears,
+                workplace: doctor.workplace,
+                phone: user.phone,
+                address: user.address,
+                gender: user.gender
+            }
+        });
+    } catch (error) {
+        res.status(500).json({ success: false, message: error.message });
+    }
+};
+
 // 7. Notes - Add Note
 exports.addNote = async (req, res) => {
     try {
