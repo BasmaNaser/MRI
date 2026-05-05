@@ -396,7 +396,7 @@ async function uploadScanController(req, res, next) {
         });
 
         // 4. Update scan status
-        newScan.status = "Completed";
+        newScan.status = "Processing";
         await newScan.save();
 
         res.status(201).json({
