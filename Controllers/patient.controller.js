@@ -379,8 +379,15 @@ async function uploadScanController(req, res, next) {
         });
 
         const aiResponse = await axios.post(
-            "https://doha14-brain-tumor-api.hf.space/predict",
-            { inputs: imageBase64 },
+          "https://doha14-brain-tumor-api.hf.space/predict",
+          {
+            data: [imageBase64]
+          },
+          {
+            headers: {
+              "Content-Type": "application/json"
+            }
+          }
         );
 
         const result = aiResponse.data;
