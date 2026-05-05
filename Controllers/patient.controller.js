@@ -9,6 +9,8 @@ const path = require('path');
 const comparePassword = require('../utils/comparePassword');
 const Hashedpassword = require('../utils/HashedPassword');
 const { validationResult } = require('express-validator');
+import axios from "axios";
+import fs from "fs";
 
 async function getProfileController(req, res) {
     try {
@@ -346,29 +348,70 @@ async function getAllReportsController(req, res) {
         next(error)
     }
 }
-async function uploadScanController(req, res) {
+async function uploadScanController(req, res, next) {
     try {
         const user = req.user;
         const file = req.file;
-        const patient = await Patient.findOne({ user: user._id }).populate('assigneddoctor');
+
+        const patient = await Patient.findOne({ user: user._id })
+            .populate('assigneddoctor');
+
         const doctor = patient.assigneddoctor;
+
         if (!file) {
-            return res.status(400).json({ success: false, message: 'Scan image is required' });
+            return res.status(400).json({
+                success: false,
+                message: 'Scan image is required'
+            });
         }
+
+        // 1. Save scan
         const newScan = await MriScan.create({
             scanImage: file.path,
             patient: patient._id,
             doctor: doctor ? doctor._id : null,
-            status: 'Pending',
+            status: 'Processing',
         });
+
+        // 2. Send to Hugging Face API
+        const imageBase64 = fs.readFileSync(file.path, {
+            encoding: "base64"
+        });
+
+        const aiResponse = await axios.post(
+            "https://doha14-brain-tumor-api.hf.space/predict",
+            { inputs: imageBase64 },
+            {
+                headers: {
+                    Authorization: Bearer ${process.env.HF_TOKEN}
+                }
+            }
+        );
+
+        const result = aiResponse.data;
+
+        // 3. Save report
+        await Report.create({
+            scan: newScan._id,
+            tumorName: result.predicted_class,
+            confidence: result.confidence,
+            tumorPixels: result.tumor_pixels,
+            overlay: result.overlay,
+            doctor: doctor ? doctor._id : null
+        });
+
+        // 4. Update scan status
+        newScan.status = "Completed";
+        await newScan.save();
+
         res.status(201).json({
             success: true,
             data: newScan
         });
+
     } catch (error) {
         next(error);
     }
-
 }
 
 async function getScanResultController(req, res) {
