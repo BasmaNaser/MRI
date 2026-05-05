@@ -389,6 +389,7 @@ async function uploadScanController(req, res, next) {
             }
           }
         );
+        console.log("AI RESPONSE:", aiResponse.data);
 
         const result = aiResponse.data;
 
