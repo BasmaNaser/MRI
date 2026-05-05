@@ -9,8 +9,8 @@ const path = require('path');
 const comparePassword = require('../utils/comparePassword');
 const Hashedpassword = require('../utils/HashedPassword');
 const { validationResult } = require('express-validator');
-import axios from "axios";
-import fs from "fs";
+const axios = require("axios");
+const fs = require("fs");
 
 async function getProfileController(req, res) {
     try {
@@ -381,10 +381,6 @@ async function uploadScanController(req, res, next) {
         const aiResponse = await axios.post(
             "https://doha14-brain-tumor-api.hf.space/predict",
             { inputs: imageBase64 },
-            {
-                headers: {
-                }
-            }
         );
 
         const result = aiResponse.data;
