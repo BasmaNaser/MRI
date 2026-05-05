@@ -370,7 +370,7 @@ async function uploadScanController(req, res, next) {
             scanImage: file.path,
             patient: patient._id,
             doctor: doctor ? doctor._id : null,
-            status: 'Processing',
+            status: 'Pending',
         });
 
         // 2. Send to Hugging Face API
