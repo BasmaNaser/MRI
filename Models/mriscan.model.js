@@ -25,7 +25,7 @@ const mriScanSchema = new mongoose.Schema(
 
     status:{
         type:String,
-        enum:['Pending','Processing','Reviewed'],
+        enum:['Pending','Reviewed'],
         default:'Pending'
     }
 
