@@ -383,7 +383,6 @@ async function uploadScanController(req, res, next) {
             { inputs: imageBase64 },
             {
                 headers: {
-                    Authorization: Bearer ${process.env.HF_TOKEN}
                 }
             }
         );
