@@ -419,7 +419,23 @@ async function uploadScanController(req, res, next) {
                 tumorName: predicted
             });
         }
-        const scanStatus= result.confidence > 0.5 ? "Reviewed" : "Completed"
+        const scanStatus= result.confidence > 0.5 ? "Reviewed" : "Completed";
+        let overlayResult;
+
+        if (result.overlay.startsWith("http")) {
+            overlayResult = await cloudinary.uploader.upload(result.overlay, {
+                folder: "overlays"
+            });
+
+        } else {
+            overlayResult = await cloudinary.uploader.upload(
+                `data:image/png;base64,${result.overlay}`,
+                {
+                    folder: "overlays"
+                }
+            );
+        }
+    
 
         await Report.create({
             scan: newScan._id,
@@ -427,6 +443,7 @@ async function uploadScanController(req, res, next) {
             doctor: doctor ? doctor._id : null,
             tumorName: tumor._id,
             confidenceScore: result.confidence,
+            reportFile: overlayResult.secure_url,
             status: scanStatus
         });
 
@@ -483,7 +500,9 @@ async function getScanResultController(req, res, next) {
             confidenceScore: r.confidenceScore,
             status: r.status || "Pending Review",
             doctor: r.doctor?.user?.username || null,
-            date: r.reportDate
+            date: r.reportDate,
+            reportFile:r.reportFile
+
         }));
 
         return res.status(200).json({
