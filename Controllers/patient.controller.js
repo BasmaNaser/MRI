@@ -363,35 +363,26 @@ async function uploadScanController(req, res, next) {
         const user = req.user;
         const file = req.file;
 
+        if (!file) {
+            return res.status(400).json({
+                success: false,
+                message: "Scan image is required"
+            });
+        }
+
         const patient = await Patient.findOne({ user: user._id })
             .populate('assigneddoctor');
 
         const doctor = patient.assigneddoctor;
 
-        if (!file) {
-            return res.status(400).json({
-                success: false,
-                message: 'Scan image is required'
-            });
-        }
-     const scanResult = await cloudinary.uploader.upload(file.path, {
+        // 1. Upload scan image to Cloudinary
+        const scanResult = await cloudinary.uploader.upload(file.path, {
             folder: "scans"
         });
 
-        fs.unlinkSync(file.path);
-
-        // 1. Save scan
-        const newScan = await MriScan.create({
-            scanImage: scanResult.secure_url,
-            patient: patient._id,
-            doctor: doctor ? doctor._id : null,
-            status: 'Pending',
-        });
-
-        // 2. Send to AI API (FIXED)
+        // 2. Send file to AI API
         const formData = new FormData();
         formData.append("file", fs.createReadStream(file.path));
-        fs.unlinkSync(file.path);
 
         const aiResponse = await axios.post(
             "https://doha14-brain-tumor-api.hf.space/predict",
@@ -405,31 +396,36 @@ async function uploadScanController(req, res, next) {
 
         const result = aiResponse.data;
 
-        // 3. Save report
+        // 3. Remove local file AFTER everything
+        if (fs.existsSync(file.path)) {
+            fs.unlinkSync(file.path);
+        }
+
+        // 4. Handle tumor type
         let predicted = result.predicted_class;
 
-// 1. Normal case
         if (!predicted || predicted.toLowerCase() === "no_tumor") {
             predicted = "Normal";
         }
 
-        // 2. شوف لو موجود في DB
         let tumor = await Tumortype.findOne({ tumorName: predicted });
 
-        // 3. لو مش موجود → اعمله create جديد
         if (!tumor) {
             tumor = await Tumortype.create({
                 tumorName: predicted
             });
         }
-        const scanStatus= result.confidence > 0.5 ? "Reviewed" : "Completed";
+
+        // 5. Scan status
+        const scanStatus = result.confidence > 0.5 ? "Reviewed" : "Completed";
+
+        // 6. Handle overlay (image or base64)
         let overlayResult;
 
         if (result.overlay.startsWith("http")) {
             overlayResult = await cloudinary.uploader.upload(result.overlay, {
                 folder: "overlays"
             });
-
         } else {
             overlayResult = await cloudinary.uploader.upload(
                 `data:image/png;base64,${result.overlay}`,
@@ -438,8 +434,16 @@ async function uploadScanController(req, res, next) {
                 }
             );
         }
-    
 
+        // 7. Save scan
+        const newScan = await MriScan.create({
+            scanImage: scanResult.secure_url,
+            patient: patient._id,
+            doctor: doctor ? doctor._id : null,
+            status: scanStatus,
+        });
+
+        // 8. Save report
         await Report.create({
             scan: newScan._id,
             patient: patient._id,
@@ -450,10 +454,11 @@ async function uploadScanController(req, res, next) {
             status: scanStatus
         });
 
-        // 4. Update status
+        // 9. Update scan status
         newScan.status = scanStatus;
         await newScan.save();
 
+        // 10. Response
         res.status(201).json({
             success: true,
             data: newScan
