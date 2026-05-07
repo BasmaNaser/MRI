@@ -3,7 +3,7 @@ const Patient = require('../Models/patient.model');
 const MriScan = require('../Models/mriscan.model');
 const Report = require('../Models/report.model');
 const Tumortype = require('../Models/tumorType.model');
-const User=require('../Models/user.model')
+const User = require('../Models/user.model')
 const Note = require('../Models/notes.model');
 const path = require('path');
 const comparePassword = require('../utils/comparePassword');
@@ -326,11 +326,12 @@ async function getAllReportsController(req, res) {
             )
         }
         for (let r of reports) {
-            if(search){
-            const notes = await Note.find({ mriscan: r.scan, note: { $regex: search, $options: 'i' } })
-                .select('note createdAt').sort({ createdAt: -1 });
-            r.notes = notes;
-        }}
+            if (search) {
+                const notes = await Note.find({ mriscan: r.scan, note: { $regex: search, $options: 'i' } })
+                    .select('note createdAt').sort({ createdAt: -1 });
+                r.notes = notes;
+            }
+        }
         res.status(200).json(
             {
                 success: true,
@@ -372,7 +373,7 @@ async function uploadScanController(req, res, next) {
             scanImage: file.path,
             patient: patient._id,
             doctor: doctor ? doctor._id : null,
-            status: 'Processing',
+            status: 'Pending',
         });
 
         // 2. Send to AI API (FIXED)
@@ -392,13 +393,30 @@ async function uploadScanController(req, res, next) {
         const result = aiResponse.data;
 
         // 3. Save report
+        let predicted = result.predicted_class;
+
+// 1. Normal case
+        if (!predicted || predicted.toLowerCase() === "no_tumor") {
+            predicted = "Normal";
+        }
+
+        // 2. شوف لو موجود في DB
+        let tumor = await Tumortype.findOne({ tumorName: predicted });
+
+        // 3. لو مش موجود → اعمله create جديد
+        if (!tumor) {
+            tumor = await Tumortype.create({
+                tumorName: predicted
+            });
+        }
+
         await Report.create({
             scan: newScan._id,
-            tumorName: result.predicted_class,
-            confidence: result.confidence,
-            tumorPixels: result.tumor_pixels,
-            overlay: result.overlay,
-            doctor: doctor ? doctor._id : null
+            patient: patient._id,
+            doctor: doctor ? doctor._id : null,
+            tumorName: tumor._id,
+            confidenceScore: result.confidence,
+            status: "Completed"
         });
 
         // 4. Update status
@@ -416,9 +434,10 @@ async function uploadScanController(req, res, next) {
     }
 }
 
-async function getScanResultController(req, res) {
+async function getScanResultController(req, res, next) {
     try {
         const { id } = req.params;
+
         const scan = await MriScan.findById(id)
             .populate({
                 path: 'doctor',
@@ -426,24 +445,47 @@ async function getScanResultController(req, res) {
                     path: 'user',
                     select: 'username email'
                 }
-            }).select('scanImage status scanDate')
+            })
             .lean();
-        if (!scan)
-            return res.status(404).json(
-                {
-                    success: false,
-                    message: 'Scan Not Found'
-                });
+
+        if (!scan) {
+            return res.status(404).json({
+                success: false,
+                message: 'Scan Not Found'
+            });
+        }
+
         const reports = await Report.find({ scan: scan._id })
             .populate('tumorName', 'tumorName')
-            .populate('doctor', 'user');
+            .populate({
+                path: 'doctor',
+                populate: {
+                    path: 'user',
+                    select: 'username email'
+                }
+            })
+            .lean();
 
-        res.status(200).json(
-            {
-                success: true,
-                data: { scan, reports }
+        const formattedReports = reports.map(r => ({
+            id: r._id,
+            tumorType: r.tumorName?.tumorName || null,
+            confidenceScore: r.confidenceScore,
+            status: r.status || "Pending Review",
+            doctor: r.doctor?.user?.username || null,
+            date: r.reportDate
+        }));
+
+        return res.status(200).json({
+            success: true,
+            data: {
+                scan: {
+                    ...scan,
+                    doctorName: scan.doctor?.user?.username || null
+                },
+                reports: formattedReports
             }
-        )
+        });
+
     } catch (error) {
         next(error);
     }
@@ -584,35 +626,31 @@ async function uploadPatientImageController(req, res) {
 
 }
 
-async function changePasswordController(req, res)
-{
-    try
-    {
+async function changePasswordController(req, res) {
+    try {
         const user = req.user;
         const patient = await User.findById(user._id);
 
         const errors = validationResult(req);
 
-        if (!errors.isEmpty())
-        {
+        if (!errors.isEmpty()) {
             return res.status(400).json(
-            {
-                success:false,
-                errors: errors.array().map(e => e.msg)
-            });
+                {
+                    success: false,
+                    errors: errors.array().map(e => e.msg)
+                });
         }
 
         const { currentPassword, newPassword } = req.body;
 
         const isMatch = await comparePassword(currentPassword, patient.password);
 
-        if (!isMatch)
-        {
+        if (!isMatch) {
             return res.status(400).json(
-            {
-                success:false,
-                message:'Current password is incorrect'
-            });
+                {
+                    success: false,
+                    message: 'Current password is incorrect'
+                });
         }
 
         const hashedPass = await Hashedpassword(newPassword);
@@ -622,14 +660,13 @@ async function changePasswordController(req, res)
         await user.save();
 
         return res.status(200).json(
-        {
-            success:true,
-            message:'Password Changed Successfully'
-        });
+            {
+                success: true,
+                message: 'Password Changed Successfully'
+            });
 
     }
-    catch(error)
-    {
+    catch (error) {
         next(error);
     }
 }
