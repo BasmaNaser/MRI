@@ -374,9 +374,11 @@ async function uploadScanController(req, res, next) {
                 message: 'Scan image is required'
             });
         }
-        const scanResult = await cloudinary.uploader.upload(file.path, {
+     const scanResult = await cloudinary.uploader.upload(file.path, {
             folder: "scans"
         });
+
+        fs.unlinkSync(file.path);
 
         // 1. Save scan
         const newScan = await MriScan.create({
@@ -389,6 +391,7 @@ async function uploadScanController(req, res, next) {
         // 2. Send to AI API (FIXED)
         const formData = new FormData();
         formData.append("file", fs.createReadStream(file.path));
+        fs.unlinkSync(file.path);
 
         const aiResponse = await axios.post(
             "https://doha14-brain-tumor-api.hf.space/predict",
@@ -646,6 +649,8 @@ async function uploadPatientImageController(req, res) {
         const result = await cloudinary.uploader.upload(req.file.path, {
             folder: "patient"
         });
+
+        fs.unlinkSync(req.file.path); 
 
         user.profileImage = result.secure_url;
         await user.save();
