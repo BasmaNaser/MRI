@@ -12,6 +12,13 @@ const { validationResult } = require('express-validator');
 const FormData = require("form-data");
 const fs = require("fs");
 const axios = require("axios");
+const cloudinary = require("cloudinary").v2;
+
+cloudinary.config({
+    cloud_name: process.env.CLOUD_NAME,
+    api_key: process.env.API_KEY,
+    api_secret: process.env.API_SECRET
+});
 
 async function getProfileController(req, res) {
     try {
@@ -367,10 +374,13 @@ async function uploadScanController(req, res, next) {
                 message: 'Scan image is required'
             });
         }
+        const scanResult = await cloudinary.uploader.upload(file.path, {
+            folder: "scans"
+        });
 
         // 1. Save scan
         const newScan = await MriScan.create({
-            scanImage: file.path,
+            scanImage: scanResult.secure_url,
             patient: patient._id,
             doctor: doctor ? doctor._id : null,
             status: 'Pending',
@@ -409,6 +419,7 @@ async function uploadScanController(req, res, next) {
                 tumorName: predicted
             });
         }
+        const scanStatus= result.confidence > 0.5 ? "Reviewed" : "Completed"
 
         await Report.create({
             scan: newScan._id,
@@ -416,11 +427,11 @@ async function uploadScanController(req, res, next) {
             doctor: doctor ? doctor._id : null,
             tumorName: tumor._id,
             confidenceScore: result.confidence,
-            status: "Completed"
+            status: scanStatus
         });
 
         // 4. Update status
-        newScan.status = "Completed";
+        newScan.status = scanStatus;
         await newScan.save();
 
         res.status(201).json({
@@ -613,7 +624,11 @@ async function uploadPatientImageController(req, res) {
         if (!req.file)
             return res.status(400).json({ success: false, message: 'image is required !' });
 
-        user.profileImage = req.file.path;
+        const result = await cloudinary.uploader.upload(req.file.path, {
+            folder: "patient"
+        });
+
+        user.profileImage = result.secure_url;
         await user.save();
         res.status(200).json({
             success: true,
