@@ -9,8 +9,9 @@ const path = require('path');
 const comparePassword = require('../utils/comparePassword');
 const Hashedpassword = require('../utils/HashedPassword');
 const { validationResult } = require('express-validator');
-const axios = require("axios");
+const FormData = require("form-data");
 const fs = require("fs");
+const axios = require("axios");
 
 async function getProfileController(req, res) {
     try {
@@ -348,6 +349,7 @@ async function getAllReportsController(req, res) {
         next(error)
     }
 }
+
 async function uploadScanController(req, res, next) {
     try {
         const user = req.user;
@@ -370,26 +372,22 @@ async function uploadScanController(req, res, next) {
             scanImage: file.path,
             patient: patient._id,
             doctor: doctor ? doctor._id : null,
-            status: 'Pending',
+            status: 'Processing',
         });
 
-        // 2. Send to Hugging Face API
-        const imageBase64 = fs.readFileSync(file.path, {
-            encoding: "base64"
-        });
+        // 2. Send to AI API (FIXED)
+        const formData = new FormData();
+        formData.append("file", fs.createReadStream(file.path));
 
         const aiResponse = await axios.post(
-          "https://doha14-brain-tumor-api.hf.space/predict",
-          {
-            inputs: imageBase64
-          },
-          {
-            headers: {
-              "Content-Type": "application/json"
+            "https://doha14-brain-tumor-api.hf.space/predict",
+            formData,
+            {
+                headers: {
+                    ...formData.getHeaders()
+                }
             }
-          }
         );
-        console.log("AI RESPONSE:", aiResponse.data);
 
         const result = aiResponse.data;
 
@@ -403,8 +401,8 @@ async function uploadScanController(req, res, next) {
             doctor: doctor ? doctor._id : null
         });
 
-        // 4. Update scan status
-        newScan.status = "Reviewed";
+        // 4. Update status
+        newScan.status = "Completed";
         await newScan.save();
 
         res.status(201).json({
@@ -413,6 +411,7 @@ async function uploadScanController(req, res, next) {
         });
 
     } catch (error) {
+        console.error(error.response?.data || error.message);
         next(error);
     }
 }
