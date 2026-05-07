@@ -535,39 +535,31 @@ async function downloadReportController(req, res, next) {
         const user = req.user;
 
         const patient = await Patient.findOne({ user: user._id });
-
         const report = await Report.findById(id);
 
         if (!report) {
-            return res.status(404).json({
-                success: false,
-                message: 'Report not found'
-            });
+            return res.status(404).json({ message: "Report not found" });
         }
 
         if (report.patient.toString() !== patient._id.toString()) {
-            return res.status(403).json({
-                success: false,
-                message: 'Unauthorized'
-            });
+            return res.status(403).json({ message: "Unauthorized" });
         }
 
-        if (!report.reportFile) {
-            return res.status(404).json({
-                success: false,
-                message: 'Report file not found'
-            });
-        }
+        const response = await axios.get(report.reportFile, {
+            responseType: "stream"
+        });
 
-        const filePath = path.resolve(report.reportFile);
+        res.setHeader(
+            "Content-Disposition",
+            `attachment; filename=report.png`
+        );
 
-        return res.download(filePath);
+        response.data.pipe(res);
 
     } catch (error) {
         next(error);
     }
 }
-
 async function deleteReportController(req, res) {
     try {
         const { id } = req.params;
