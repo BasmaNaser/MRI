@@ -3,22 +3,12 @@ const Patient = require('../Models/patient.model');
 const MriScan = require('../Models/mriscan.model');
 const Report = require('../Models/report.model');
 const Tumortype = require('../Models/tumorType.model');
-const User = require('../Models/user.model')
+const User=require('../Models/user.model')
 const Note = require('../Models/notes.model');
 const path = require('path');
 const comparePassword = require('../utils/comparePassword');
 const Hashedpassword = require('../utils/HashedPassword');
 const { validationResult } = require('express-validator');
-const FormData = require("form-data");
-const fs = require("fs");
-const axios = require("axios");
-const cloudinary = require("cloudinary").v2;
-
-cloudinary.config({
-    cloud_name: process.env.CLOUD_NAME,
-    api_key: process.env.API_KEY,
-    api_secret: process.env.API_SECRET
-});
 
 async function getProfileController(req, res) {
     try {
@@ -170,7 +160,7 @@ async function getRecentReportsController(req, res) {
         //     }
         // );
         const reports = await Report.find({ patient: patient._id }).populate('tumorName', 'tumorName')
-            .select('reportDate confidenceScore tumorName reportFile').limit(5);
+            .select('reportDate confidenceScore tumorName reportFile tumorDetected').limit(5);
         if (reports.length === 0) {
             return res.status(404).json(
                 {
@@ -185,8 +175,8 @@ async function getRecentReportsController(req, res) {
                 data: reports.map(r => ({
                     id: r._id,
                     date: r.reportDate,
-                    tumorType: r.tumorName ? r.tumorName.tumorName : null,
-                    confidenceScore: r.confidenceScore,
+                    tumorType: r.tumorName ? r.tumorName.tumorName : (r.tumorDetected ? "Unknown Tumor" : "Normal"),
+                    confidence: r.confidenceScore != null ? r.confidenceScore + "%" : "--",
                     file: r.reportFile
 
                 }))
@@ -220,7 +210,7 @@ async function getDashboardSummaryController(req, res) {
         let averageAccuracy = null;
         if (reports.length > 0) {
             const total = reports.reduce((sum, r) => sum + (r.confidenceScore || 0), 0);
-            averageAccuracy = total / reports.length;
+            averageAccuracy = (total / reports.length).toFixed(1) + "%";
         }
 
         res.status(200).json(
@@ -322,7 +312,7 @@ async function getAllReportsController(req, res) {
         }
         const reports = await Report.find(query).sort({ reportDate: -1 })
             .populate('tumorName', 'tumorName')
-            .select('reportDate tumorName confidenceScore reportFile')
+            .select('reportDate tumorName confidenceScore reportFile tumorDetected')
             .lean();
         if (reports.length === 0) {
             return res.status(404).json(
@@ -333,20 +323,19 @@ async function getAllReportsController(req, res) {
             )
         }
         for (let r of reports) {
-            if (search) {
-                const notes = await Note.find({ mriscan: r.scan, note: { $regex: search, $options: 'i' } })
-                    .select('note createdAt').sort({ createdAt: -1 });
-                r.notes = notes;
-            }
-        }
+            if(search){
+            const notes = await Note.find({ mriscan: r.scan, note: { $regex: search, $options: 'i' } })
+                .select('note createdAt').sort({ createdAt: -1 });
+            r.notes = notes;
+        }}
         res.status(200).json(
             {
                 success: true,
                 data: reports.map(r => ({
                     id: r._id,
                     date: r.reportDate,
-                    tumorType: r.tumorName ? r.tumorName.tumorName : null,
-                    confidenceScore: r.confidenceScore,
+                    tumorType: r.tumorName ? r.tumorName.tumorName : (r.tumorDetected ? "Unknown Tumor" : "Normal"),
+                    confidence: r.confidenceScore != null ? r.confidenceScore + "%" : "--",
                     notes: r.notes,
                     file: r.reportFile
 
@@ -357,123 +346,34 @@ async function getAllReportsController(req, res) {
         next(error)
     }
 }
-
-async function uploadScanController(req, res, next) {
+async function uploadScanController(req, res) {
     try {
         const user = req.user;
         const file = req.file;
-
-        if (!file) {
-            return res.status(400).json({
-                success: false,
-                message: "Scan image is required"
-            });
-        }
-
-        const patient = await Patient.findOne({ user: user._id })
-            .populate('assigneddoctor');
-
+        const patient = await Patient.findOne({ user: user._id }).populate('assigneddoctor');
         const doctor = patient.assigneddoctor;
-
-        // 1. Upload scan image to Cloudinary
-        const scanResult = await cloudinary.uploader.upload(file.path, {
-            folder: "scans"
-        });
-
-        // 2. Send file to AI API
-        const formData = new FormData();
-        formData.append("file", fs.createReadStream(file.path));
-
-        const aiResponse = await axios.post(
-            "https://doha14-brain-tumor-api.hf.space/predict",
-            formData,
-            {
-                headers: {
-                    ...formData.getHeaders()
-                }
-            }
-        );
-
-        const result = aiResponse.data;
-
-        // 3. Remove local file AFTER everything
-        if (fs.existsSync(file.path)) {
-            fs.unlinkSync(file.path);
+        if (!file) {
+            return res.status(400).json({ success: false, message: 'Scan image is required' });
         }
-
-        // 4. Handle tumor type
-        let predicted = result.predicted_class;
-
-        if (!predicted || predicted.toLowerCase() === "no_tumor") {
-            predicted = "Normal";
-        }
-
-        let tumor = await Tumortype.findOne({ tumorName: predicted });
-
-        if (!tumor) {
-            tumor = await Tumortype.create({
-                tumorName: predicted
-            });
-        }
-
-        // 5. Scan status
-        const scanStatus = result.confidence > 0.5 ? "Reviewed" : "Completed";
-
-        // 6. Handle overlay (image or base64)
-        let overlayResult;
-
-        if (result.overlay.startsWith("http")) {
-            overlayResult = await cloudinary.uploader.upload(result.overlay, {
-                folder: "overlays"
-            });
-        } else {
-            overlayResult = await cloudinary.uploader.upload(
-                `data:image/png;base64,${result.overlay}`,
-                {
-                    folder: "overlays"
-                }
-            );
-        }
-
-        // 7. Save scan
         const newScan = await MriScan.create({
-            scanImage: scanResult.secure_url,
+            scanImage: file.path,
             patient: patient._id,
             doctor: doctor ? doctor._id : null,
-            status: scanStatus,
+            status: 'Pending',
         });
-
-        // 8. Save report
-        await Report.create({
-            scan: newScan._id,
-            patient: patient._id,
-            doctor: doctor ? doctor._id : null,
-            tumorName: tumor._id,
-            confidenceScore: result.confidence,
-            reportFile: overlayResult.secure_url,
-            status: scanStatus
-        });
-
-        // 9. Update scan status
-        newScan.status = scanStatus;
-        await newScan.save();
-
-        // 10. Response
         res.status(201).json({
             success: true,
             data: newScan
         });
-
     } catch (error) {
-        console.error(error.response?.data || error.message);
         next(error);
     }
+
 }
 
-async function getScanResultController(req, res, next) {
+async function getScanResultController(req, res) {
     try {
         const { id } = req.params;
-
         const scan = await MriScan.findById(id)
             .populate({
                 path: 'doctor',
@@ -481,49 +381,24 @@ async function getScanResultController(req, res, next) {
                     path: 'user',
                     select: 'username email'
                 }
-            })
+            }).select('scanImage status scanDate')
             .lean();
-
-        if (!scan) {
-            return res.status(404).json({
-                success: false,
-                message: 'Scan Not Found'
-            });
-        }
-
+        if (!scan)
+            return res.status(404).json(
+                {
+                    success: false,
+                    message: 'Scan Not Found'
+                });
         const reports = await Report.find({ scan: scan._id })
             .populate('tumorName', 'tumorName')
-            .populate({
-                path: 'doctor',
-                populate: {
-                    path: 'user',
-                    select: 'username email'
-                }
-            })
-            .lean();
+            .populate('doctor', 'user');
 
-        const formattedReports = reports.map(r => ({
-            id: r._id,
-            tumorType: r.tumorName?.tumorName || null,
-            confidenceScore: r.confidenceScore,
-            status: r.status || "Pending Review",
-            doctor: r.doctor?.user?.username || null,
-            date: r.reportDate,
-            reportFile:r.reportFile
-
-        }));
-
-        return res.status(200).json({
-            success: true,
-            data: {
-                scan: {
-                    ...scan,
-                    doctorName: scan.doctor?.user?.username || null
-                },
-                reports: formattedReports
+        res.status(200).json(
+            {
+                success: true,
+                data: { scan, reports }
             }
-        });
-
+        )
     } catch (error) {
         next(error);
     }
@@ -535,31 +410,39 @@ async function downloadReportController(req, res, next) {
         const user = req.user;
 
         const patient = await Patient.findOne({ user: user._id });
+
         const report = await Report.findById(id);
 
         if (!report) {
-            return res.status(404).json({ message: "Report not found" });
+            return res.status(404).json({
+                success: false,
+                message: 'Report not found'
+            });
         }
 
         if (report.patient.toString() !== patient._id.toString()) {
-            return res.status(403).json({ message: "Unauthorized" });
+            return res.status(403).json({
+                success: false,
+                message: 'Unauthorized'
+            });
         }
 
-        const response = await axios.get(report.reportFile, {
-            responseType: "stream"
-        });
+        if (!report.reportFile) {
+            return res.status(404).json({
+                success: false,
+                message: 'Report file not found'
+            });
+        }
 
-        res.setHeader(
-            "Content-Disposition",
-            `attachment; filename=report.png`
-        );
+        const filePath = path.resolve(report.reportFile);
 
-        response.data.pipe(res);
+        return res.download(filePath);
 
     } catch (error) {
         next(error);
     }
 }
+
 async function deleteReportController(req, res) {
     try {
         const { id } = req.params;
@@ -592,7 +475,7 @@ async function getLatestRecommendationController(req, res) {
         const latestReport = await Report.findOne({ patient: patient._id })
             .populate('tumorName', 'tumorName')
             .sort({ reportDate: -1 })
-            .select('tumorName confidenceScore recommendation reportDate')
+            .select('tumorName confidenceScore recommendation reportDate tumorDetected')
             .lean(); // لو حابة نتجنب مشاكل الـ mongoose document
 
         if (!latestReport) {
@@ -602,8 +485,8 @@ async function getLatestRecommendationController(req, res) {
         return res.status(200).json({
             success: true,
             data: {
-                tumorType: latestReport.tumorName ? latestReport.tumorName.tumorName : null,
-                confidenceScore: latestReport.confidenceScore,
+                tumorType: latestReport.tumorName ? latestReport.tumorName.tumorName : (latestReport.tumorDetected ? "Unknown Tumor" : "Normal"),
+                confidence: latestReport.confidenceScore != null ? latestReport.confidenceScore + "%" : "--",
                 recommendation: latestReport.recommendation || null,
                 recommendationDate: latestReport.reportDate
             }
@@ -643,13 +526,7 @@ async function uploadPatientImageController(req, res) {
         if (!req.file)
             return res.status(400).json({ success: false, message: 'image is required !' });
 
-        const result = await cloudinary.uploader.upload(req.file.path, {
-            folder: "patient"
-        });
-
-        fs.unlinkSync(req.file.path); 
-
-        user.profileImage = result.secure_url;
+        user.profileImage = req.file.path;
         await user.save();
         res.status(200).json({
             success: true,
@@ -662,31 +539,35 @@ async function uploadPatientImageController(req, res) {
 
 }
 
-async function changePasswordController(req, res) {
-    try {
+async function changePasswordController(req, res)
+{
+    try
+    {
         const user = req.user;
         const patient = await User.findById(user._id);
 
         const errors = validationResult(req);
 
-        if (!errors.isEmpty()) {
+        if (!errors.isEmpty())
+        {
             return res.status(400).json(
-                {
-                    success: false,
-                    errors: errors.array().map(e => e.msg)
-                });
+            {
+                success:false,
+                errors: errors.array().map(e => e.msg)
+            });
         }
 
         const { currentPassword, newPassword } = req.body;
 
         const isMatch = await comparePassword(currentPassword, patient.password);
 
-        if (!isMatch) {
+        if (!isMatch)
+        {
             return res.status(400).json(
-                {
-                    success: false,
-                    message: 'Current password is incorrect'
-                });
+            {
+                success:false,
+                message:'Current password is incorrect'
+            });
         }
 
         const hashedPass = await Hashedpassword(newPassword);
@@ -696,13 +577,14 @@ async function changePasswordController(req, res) {
         await user.save();
 
         return res.status(200).json(
-            {
-                success: true,
-                message: 'Password Changed Successfully'
-            });
+        {
+            success:true,
+            message:'Password Changed Successfully'
+        });
 
     }
-    catch (error) {
+    catch(error)
+    {
         next(error);
     }
 }
