@@ -413,11 +413,11 @@ const getDashboard = async (req, res, next) => {
             as: "tumor"
         }
     },
-    { $unwind: "$tumor" },
+    { $unwind: { path: "$tumor", preserveNullAndEmptyArrays: true } },
     {
         $project: {
             _id: 0,
-            tumorName: "$tumor.name", 
+            tumorName: { $ifNull: ["$tumor.tumorName", "Normal"] }, 
             count: 1
         }
     }
@@ -431,7 +431,7 @@ const getDashboard = async (req, res, next) => {
                 totalDoctors,
                 totalPatients,
                 scansAnalyzed,
-                aiAccuracyAvg: aiAccuracyAvg.toFixed(2),
+                aiAccuracyAvg: aiAccuracyAvg.toFixed(1) + "%",
                 monthlyActivity,
                 tumorTypes
             }
