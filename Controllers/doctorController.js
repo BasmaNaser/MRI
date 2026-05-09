@@ -54,7 +54,7 @@ exports.getDashboardData = async (req, res) => {
 
     const averageAccuracy =
       accuracyCount > 0
-        ? Math.round(totalConfidence / accuracyCount) + "%"
+        ? (totalConfidence / accuracyCount).toFixed(1) + "%"
         : "0%";
     const lastUpdated = allReports.length > 0 ? allReports[0].reportDate : null;
 
@@ -391,7 +391,7 @@ exports.createRecommendation = async (req, res) => {
       originalScan,
       segmentedScan,
       tumorDetected,
-      confidenceScore,
+      confidenceScore: confidenceScore != null ? Number(confidenceScore) : null,
       tumorName,
       recommendation, // standard MRI
       aiRecommendation: recommendation, // local GUI dashboard
