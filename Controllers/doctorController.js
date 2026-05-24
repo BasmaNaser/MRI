@@ -7,6 +7,34 @@ const User = require("../Models/user.model");
 const bcrypt = require("bcrypt");
 const Hashedpassword = require("../utils/HashedPassword");
 
+// ─── Helper: normalise a confidenceScore coming from AI (0-1 decimal)
+//            or from doctor input (1-100 range) → always returns "xx.x%" or "--"
+function formatConfidence(score) {
+  if (score == null) return "--";
+  // If the AI model stores 0-1 range, multiply by 100
+  const pct = score <= 1 ? (score * 100) : score;
+  return pct.toFixed(1) + "%";
+}
+
+// ─── Helper: decide whether a tumor was detected.
+//     tumorName populated object whose .tumorName === "Normal" → no tumor
+//     tumorName populated object with any other name            → tumor detected
+//     tumorName is null/undefined                              → unknown (treat as no tumor)
+function isTumorDetected(populatedTumorName) {
+  if (!populatedTumorName || !populatedTumorName.tumorName) return false;
+  return populatedTumorName.tumorName.toLowerCase() !== "normal";
+}
+
+// ─── Helper: resolve confidence based on 3 cases:
+//   1. No tumorName data at all (null/undefined) → null  (no scan data yet)
+//   2. tumorName = "Normal" → "100.0%"           (scan done, no tumor found)
+//   3. tumorName = anything else → AI score      (tumor detected)
+function resolveConfidence(score, populatedTumorName) {
+  if (!populatedTumorName || !populatedTumorName.tumorName) return null;
+  if (populatedTumorName.tumorName.toLowerCase() === "normal") return "100.0%";
+  return formatConfidence(score);
+}
+
 // 1. Dashboard API
 exports.getDashboardData = async (req, res) => {
   try {
@@ -46,15 +74,13 @@ exports.getDashboardData = async (req, res) => {
       let tName =
         report.tumorName && report.tumorName.tumorName
           ? report.tumorName.tumorName
-          : report.tumorDetected
-            ? "Unknown Tumor"
-            : "Normal";
+          : "Normal";
       tumorDistribution[tName] = (tumorDistribution[tName] || 0) + 1;
     });
 
     const averageAccuracy =
       accuracyCount > 0
-        ? (totalConfidence / accuracyCount).toFixed(1) + "%"
+        ? formatConfidence(totalConfidence / accuracyCount)
         : "0%";
     const lastUpdated = allReports.length > 0 ? allReports[0].reportDate : null;
 
@@ -70,11 +96,9 @@ exports.getDashboardData = async (req, res) => {
       tumorType:
         report.tumorName && report.tumorName.tumorName
           ? report.tumorName.tumorName
-          : report.tumorDetected
-            ? "Unknown Tumor"
-            : "Normal",
-      confidence:
-        report.confidenceScore != null ? report.confidenceScore + "%" : "--",
+          : "Normal",
+      tumorDetected: isTumorDetected(report.tumorName),
+      confidence: resolveConfidence(report.confidenceScore, report.tumorName),
       doctorNotes:
         report.doctorComment || report.recommendation || "No abnormalities.",
       reportUrl: report.reportFile,
@@ -137,13 +161,8 @@ exports.getAllPatients = async (req, res) => {
           tType =
             recentReport.tumorName && recentReport.tumorName.tumorName
               ? recentReport.tumorName.tumorName
-              : recentReport.tumorDetected
-                ? "Unknown Tumor"
-                : "Normal";
-          conf =
-            recentReport.confidenceScore != null
-              ? recentReport.confidenceScore + "%"
-              : "--";
+              : "Normal";
+          conf = resolveConfidence(recentReport.confidenceScore, recentReport.tumorName);
           scanDate = recentReport.reportDate;
         } else if (latestScan) {
           tType = "Pending analysis";
@@ -286,16 +305,12 @@ exports.getPatientDetails = async (req, res) => {
         },
         aiAnalysisResult: {
           tumorType: recentReport
-            ? recentReport.tumorName
+            ? recentReport.tumorName && recentReport.tumorName.tumorName
               ? recentReport.tumorName.tumorName
-              : recentReport.tumorDetected
-                ? "Unknown Tumor"
-                : "Normal"
+              : "Normal"
             : "No Data",
-          confidence:
-            recentReport && recentReport.confidenceScore != null
-              ? recentReport.confidenceScore + "%"
-              : "--",
+          tumorDetected: recentReport ? isTumorDetected(recentReport.tumorName) : false,
+          confidence: recentReport ? resolveConfidence(recentReport.confidenceScore, recentReport.tumorName) : null,
           status: patient.status,
           description: recentReport
             ? recentReport.doctorComment || recentReport.aiRecommendation
@@ -341,11 +356,23 @@ exports.getPatientReports = async (req, res) => {
       .select("-__v");
 
     const formattedReports = reports.map((r) => {
-      // For rendering nicely on frontend
       const plain = r.toObject();
+      // Determine tumor type name
+      const tumorTypeName =
+        r.tumorName && r.tumorName.tumorName
+          ? r.tumorName.tumorName
+          : null;
+
+      // Flatten tumorName to string for display
       if (plain.tumorName && plain.tumorName.tumorName) {
         plain.tumorName = plain.tumorName.tumorName;
       }
+
+      // Add formatted fields used by frontend
+      plain.tumorType = tumorTypeName || "Normal";
+      plain.tumorDetected = isTumorDetected(r.tumorName);
+      plain.confidence = resolveConfidence(r.confidenceScore, r.tumorName);
+
       return plain;
     });
 
@@ -688,10 +715,9 @@ exports.getAllReports = async (req, res) => {
       tumorType:
         r.tumorName && r.tumorName.tumorName
           ? r.tumorName.tumorName
-          : r.tumorDetected
-            ? "Unknown Tumor"
-            : "Normal",
-      confidence: r.confidenceScore != null ? r.confidenceScore + "%" : "--",
+          : "Normal",
+      tumorDetected: isTumorDetected(r.tumorName),
+      confidence: resolveConfidence(r.confidenceScore, r.tumorName),
       scanDate: r.reportDate,
       doctorNotes:
         r.doctorComment ||
