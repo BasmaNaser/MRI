@@ -505,12 +505,11 @@ async function getScanResultController(req, res, next) {
         const formattedReports = reports.map(r => ({
             id: r._id,
             tumorType: r.tumorName?.tumorName || null,
-            confidenceScore: r.confidenceScore,
+            confidenceScore: r.tumorName?.tumorName === "Normal" ? 1.00 : r.confidenceScore,
             status: r.status || "Pending Review",
             doctor: r.doctor?.user?.username || null,
             date: r.reportDate,
-            reportFile:r.reportFile
-
+            reportFile: r.reportFile
         }));
 
         return res.status(200).json({
