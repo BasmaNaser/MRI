@@ -384,6 +384,12 @@ exports.createRecommendation = async (req, res) => {
         .json({ success: false, message: "Patient not found or unauthorized" });
     }
 
+    // If Normal (no tumor) and no confidence provided, default to 100%
+    let finalConfidence = confidenceScore != null ? Number(confidenceScore) : null;
+    if (!tumorDetected && finalConfidence == null) {
+      finalConfidence = 100;
+    }
+
     const newReport = new Report({
       patient: patientId,
       doctor: doctorId,
@@ -391,7 +397,7 @@ exports.createRecommendation = async (req, res) => {
       originalScan,
       segmentedScan,
       tumorDetected,
-      confidenceScore: confidenceScore != null ? Number(confidenceScore) : null,
+      confidenceScore: finalConfidence,
       tumorName,
       recommendation, // standard MRI
       aiRecommendation: recommendation, // local GUI dashboard
