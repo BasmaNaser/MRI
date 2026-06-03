@@ -417,7 +417,7 @@ const getDashboard = async (req, res, next) => {
     {
         $project: {
             _id: 0,
-            tumorName: { $ifNull: ["$tumor.tumorName", "Normal"] }, 
+            tumorName: { $ifNull: ["$tumor.tumorName"] }, 
             count: 1
         }
     }
