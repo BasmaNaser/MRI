@@ -103,6 +103,23 @@ AdminRouter.put('/doctors/:id',protectAdmin(),updateDoctor);
  *       - in: path
  *         name: id
  *         required: true
+ *         schema:
+ *           type: string
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required:
+ *               - status
+ *             properties:
+ *               status:
+ *                 type: string
+ *                 enum:
+ *                   - Active
+ *                   - Inactive
+ *                 example: Active
  *     responses:
  *       200:
  *         description: Status updated
@@ -215,6 +232,19 @@ AdminRouter.get('/dashboard',protectAdmin(),getDashboard);
  *     tags: [Admin]
  *     security:
  *       - bearerAuth: []
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             properties:
+ *               username:
+ *                 type: string
+ *                 example: Omnia
+ *               email:
+ *                 type: string
+ *                 example: om@gmail.com
  *     responses:
  *       200:
  *         description: Profile updated
@@ -228,6 +258,22 @@ AdminRouter.patch('/profile',protectAdmin(),updateAdminProfile)
  *     tags: [Admin]
  *     security:
  *       - bearerAuth: []
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required:
+ *               - currentPassword
+ *               - newPassword
+ *             properties:
+ *               currentPassword:
+ *                 type: string
+ *                 example: OldPassword123
+ *               newPassword:
+ *                 type: string
+ *                 example: NewPassword123
  *     responses:
  *       200:
  *         description: Password updated
