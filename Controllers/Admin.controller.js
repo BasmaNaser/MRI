@@ -165,7 +165,7 @@ const deleteDoctor = async (req, res, next) => {
     try {
         const userId = req.params.id;
 
-        const user = await User.findOneAndDelete({ _id: userId, role: 'Doctor' });
+        const user = await User.findOneAndDelete({ _id: userId });
         if (!user) {
             return res.status(404).json({
                 success: false,
