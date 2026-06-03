@@ -145,7 +145,7 @@ const updateDoctorStatus = async (req, res, next) => {
         }
 
         const doctor = await Doctor.findOneAndUpdate(
-            { _id: req.params.id, role: 'Doctor' },
+            { _id: req.params.id},
             { status },
             { new: true }
         );
