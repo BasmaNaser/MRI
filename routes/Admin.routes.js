@@ -27,6 +27,30 @@ AdminRouter.get('/doctors',protectAdmin(),getDoctors);
  *     tags: [Admin]
  *     security:
  *       - bearerAuth: []
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required:
+ *               - username
+ *               - email
+ *               - password
+ *               - specialization
+ *             properties:
+ *               username:
+ *                 type: string
+ *                 example: Ahmed Mohamed
+ *               email:
+ *                 type: string
+ *                 example: ahmed@gmail.com
+ *               password:
+ *                 type: string
+ *                 example: Password123
+ *               specialization:
+ *                 type: string
+ *                 example: Neurology
  *     responses:
  *       201:
  *         description: Doctor created successfully
@@ -44,6 +68,24 @@ AdminRouter.post('/doctors',protectAdmin(),createDoctor);
  *       - in: path
  *         name: id
  *         required: true
+ *         schema:
+ *           type: string
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             properties:
+ *               username:
+ *                 type: string
+ *                 example: Ahmed Ali
+ *               email:
+ *                 type: string
+ *                 example: ahmed@gmail.com
+ *               specialization:
+ *                 type: string
+ *                 example: Radiology
  *     responses:
  *       200:
  *         description: Doctor updated
