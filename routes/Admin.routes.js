@@ -117,9 +117,9 @@ AdminRouter.put('/doctors/:id',protectAdmin(),updateDoctor);
  *               status:
  *                 type: string
  *                 enum:
- *                   - Active
- *                   - Inactive
- *                 example: Active
+ *                   - active
+ *                   - inactive
+ *                 example: ictive
  *     responses:
  *       200:
  *         description: Status updated
