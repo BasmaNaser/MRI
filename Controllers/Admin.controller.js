@@ -140,7 +140,7 @@ const updateDoctorStatus = async (req, res, next) => {
     try {
         const { status } = req.body;
 
-        if (!['Active', 'Inactive'].includes(status)) {
+        if (!['active', 'inactive'].includes(status)) {
             return res.status(400).json({ message: "Invalid status" });
         }
 
