@@ -13,7 +13,7 @@ const userSchema=new mongoose.Schema(
     },
     role:{
         type:String,
-        enum:['Patient','Doctor'],
+        enum:['Patient','Doctor','Admin'],
         default:'Patient'
     },
     profileImage:{
