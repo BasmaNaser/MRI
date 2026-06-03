@@ -366,7 +366,7 @@ const logout=async(req,res,next)=>{
 
 const getDashboard = async (req, res, next) => {
     try {
-    
+
         const [
             totalDoctors,
             totalPatients,
@@ -375,9 +375,17 @@ const getDashboard = async (req, res, next) => {
             monthlyActivity,
             tumorTypes
         ] = await Promise.all([
+
+            // total doctors
             User.countDocuments({ role: 'Doctor' }),
+
+            // total patients
             User.countDocuments({ role: 'Patient' }),
+
+            // scans analyzed
             MriScan.countDocuments({ status: 'Reviewed' }),
+
+            // AI accuracy average
             Report.aggregate([
                 {
                     $group: {
@@ -387,6 +395,7 @@ const getDashboard = async (req, res, next) => {
                 }
             ]),
 
+            // monthly activity
             MriScan.aggregate([
                 {
                     $group: {
@@ -397,31 +406,24 @@ const getDashboard = async (req, res, next) => {
                 { $sort: { "_id": 1 } }
             ]),
 
-            Report.aggregate(
-                [
-    {
-        $group: {
-            _id: "$tumorName",
-            count: { $sum: 1 }
-        }
-    },
-    {
-        $lookup: {
-            from: "tumortypes", 
-            localField: "_id",
-            foreignField: "_id",
-            as: "tumor"
-        }
-    },
-    { $unwind: { path: "$tumor", preserveNullAndEmptyArrays: true } },
-    {
-        $project: {
-            _id: 0,
-            tumorName: { $ifNull: ["$tumor.tumorName"] }, 
-            count: 1
-        }
-    }
-])]);
+            // tumor types (FIXED)
+            Report.aggregate([
+                {
+                    $group: {
+                        _id: { $toLower: "$tumorName" },
+                        count: { $sum: 1 }
+                    }
+                },
+                {
+                    $project: {
+                        _id: 0,
+                        tumorName: "$_id",
+                        count: 1
+                    }
+                },
+                { $sort: { count: -1 } }
+            ])
+        ]);
 
         const aiAccuracyAvg = accuracyData[0]?.avgConfidence || 0;
 
