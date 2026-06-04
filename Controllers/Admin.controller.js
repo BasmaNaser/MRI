@@ -376,16 +376,12 @@ const getDashboard = async (req, res, next) => {
             tumorTypes
         ] = await Promise.all([
 
-            // Total Doctors
             User.countDocuments({ role: 'Doctor' }),
 
-            // Total Patients
             User.countDocuments({ role: 'Patient' }),
 
-            // Reviewed Scans
             MriScan.countDocuments({ status: 'Reviewed' }),
 
-            // Average AI Confidence (handles both 0-1 and 0-100 values)
             Report.aggregate([
                 {
                     $project: {
@@ -406,7 +402,6 @@ const getDashboard = async (req, res, next) => {
                 }
             ]),
 
-            // Monthly Activity
             MriScan.aggregate([
                 {
                     $group: {
@@ -419,13 +414,7 @@ const getDashboard = async (req, res, next) => {
                 }
             ]),
 
-            // Tumor Types Statistics
             Report.aggregate([
-                {
-                    $match: {
-                        tumorName: { $ne: null }
-                    }
-                },
                 {
                     $group: {
                         _id: "$tumorName",
@@ -454,14 +443,22 @@ const getDashboard = async (req, res, next) => {
                         },
                         count: 1
                     }
-                },
-                {
-                    $sort: { count: -1 }
                 }
             ])
         ]);
 
         const aiAccuracyAvg = accuracyData[0]?.avgConfidence || 0;
+
+    
+        const months = [
+            "", "Jan", "Feb", "Mar", "Apr", "May", "Jun",
+            "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"
+        ];
+
+        const formattedMonthlyActivity = monthlyActivity.map(item => ({
+            month: months[item._id],
+            count: item.count
+        }));
 
         res.status(200).json({
             success: true,
@@ -470,7 +467,7 @@ const getDashboard = async (req, res, next) => {
                 totalPatients,
                 scansAnalyzed,
                 aiAccuracyAvg: `${aiAccuracyAvg.toFixed(1)}%`,
-                monthlyActivity,
+                monthlyActivity: formattedMonthlyActivity,
                 tumorTypes
             }
         });
@@ -480,7 +477,6 @@ const getDashboard = async (req, res, next) => {
         next(error);
     }
 };
-
 const changePassword = async (req, res, next) => {
     try {
         const errors = validationResult(req);
