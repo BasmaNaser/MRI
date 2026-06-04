@@ -385,12 +385,23 @@ const getDashboard = async (req, res, next) => {
             // Reviewed Scans
             MriScan.countDocuments({ status: 'Reviewed' }),
 
-            // Average AI Confidence
+            // Average AI Confidence (handles both 0-1 and 0-100 values)
             Report.aggregate([
+                {
+                    $project: {
+                        normalizedScore: {
+                            $cond: [
+                                { $lte: ["$confidenceScore", 1] },
+                                { $multiply: ["$confidenceScore", 100] },
+                                "$confidenceScore"
+                            ]
+                        }
+                    }
+                },
                 {
                     $group: {
                         _id: null,
-                        avgConfidence: { $avg: "$confidenceScore" }
+                        avgConfidence: { $avg: "$normalizedScore" }
                     }
                 }
             ]),
@@ -410,6 +421,11 @@ const getDashboard = async (req, res, next) => {
 
             // Tumor Types Statistics
             Report.aggregate([
+                {
+                    $match: {
+                        tumorName: { $ne: null }
+                    }
+                },
                 {
                     $group: {
                         _id: "$tumorName",
@@ -464,7 +480,6 @@ const getDashboard = async (req, res, next) => {
         next(error);
     }
 };
-
 
 const changePassword = async (req, res, next) => {
     try {
