@@ -274,6 +274,8 @@ AdminRouter.patch('/profile',protectAdmin(),updateAdminProfile)
  *               newPassword:
  *                 type: string
  *                 example: NewPassword123
+                confirmNewPassword:
+                  type: string
  *     responses:
  *       200:
  *         description: Password updated
