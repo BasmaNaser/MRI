@@ -403,11 +403,9 @@ async function uploadScanController(req, res, next) {
 
         // 4. Handle tumor type
         let predicted = result.predicted_class;
-
-        if (!predicted || predicted.toLowerCase() === "no_tumor") {
-            predicted = "Normal";
+        if (!predicted) {
+            predicted = "no_tumor";
         }
-
         let tumor = await Tumortype.findOne({ tumorName: predicted });
 
         if (!tumor) {
