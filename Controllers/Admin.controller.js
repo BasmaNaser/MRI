@@ -376,12 +376,16 @@ const getDashboard = async (req, res, next) => {
             tumorTypes
         ] = await Promise.all([
 
+            // Total Doctors
             User.countDocuments({ role: 'Doctor' }),
 
+            // Total Patients
             User.countDocuments({ role: 'Patient' }),
 
+            // Scans Analyzed
             MriScan.countDocuments({ status: 'Reviewed' }),
 
+            // AI Accuracy (normalized 0–1 and 0–100)
             Report.aggregate([
                 {
                     $project: {
@@ -402,6 +406,7 @@ const getDashboard = async (req, res, next) => {
                 }
             ]),
 
+            // Monthly Activity
             MriScan.aggregate([
                 {
                     $group: {
@@ -414,42 +419,47 @@ const getDashboard = async (req, res, next) => {
                 }
             ]),
 
+            // Tumor Types (NO Unknown)
             Report.aggregate([
                 {
-                    $group: {
-                        _id: "$tumorName",
-                        count: { $sum: 1 }
+                    $match: {
+                        tumorName: { $ne: null }
                     }
                 },
                 {
                     $lookup: {
                         from: "tumortypes",
-                        localField: "_id",
+                        localField: "tumorName",
                         foreignField: "_id",
                         as: "tumor"
                     }
                 },
                 {
-                    $unwind: {
-                        path: "$tumor",
-                        preserveNullAndEmptyArrays: true
+                    $unwind: "$tumor"
+                },
+                {
+                    $group: {
+                        _id: "$tumor._id",
+                        tumorName: { $first: "$tumor.tumorName" },
+                        count: { $sum: 1 }
                     }
                 },
                 {
                     $project: {
                         _id: 0,
-                        tumorName: {
-                            $ifNull: ["$tumor.tumorName", "Unknown"]
-                        },
+                        tumorName: 1,
                         count: 1
                     }
+                },
+                {
+                    $sort: { count: -1 }
                 }
             ])
         ]);
 
         const aiAccuracyAvg = accuracyData[0]?.avgConfidence || 0;
 
-    
+        // Month names
         const months = [
             "", "Jan", "Feb", "Mar", "Apr", "May", "Jun",
             "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"
