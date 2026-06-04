@@ -145,10 +145,10 @@ const updateDoctorStatus = async (req, res, next) => {
         }
 
         const doctor = await Doctor.findOneAndUpdate(
-            { _id: req.params.id},
-            { status },
-            { new: true }
-        );
+    { user: req.params.id },
+    { status },
+    { new: true }
+);
 
         if (!doctor) {
             return res.status(404).json({ message: 'Doctor not found' });
