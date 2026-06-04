@@ -376,16 +376,16 @@ const getDashboard = async (req, res, next) => {
             tumorTypes
         ] = await Promise.all([
 
-            // total doctors
+            // Total Doctors
             User.countDocuments({ role: 'Doctor' }),
 
-            // total patients
+            // Total Patients
             User.countDocuments({ role: 'Patient' }),
 
-            // scans analyzed
+            // Reviewed Scans
             MriScan.countDocuments({ status: 'Reviewed' }),
 
-            // AI accuracy average
+            // Average AI Confidence
             Report.aggregate([
                 {
                     $group: {
@@ -395,7 +395,7 @@ const getDashboard = async (req, res, next) => {
                 }
             ]),
 
-            // monthly activity
+            // Monthly Activity
             MriScan.aggregate([
                 {
                     $group: {
@@ -403,25 +403,45 @@ const getDashboard = async (req, res, next) => {
                         count: { $sum: 1 }
                     }
                 },
-                { $sort: { "_id": 1 } }
+                {
+                    $sort: { _id: 1 }
+                }
             ]),
 
-            // tumor types (FIXED)
+            // Tumor Types Statistics
             Report.aggregate([
                 {
                     $group: {
-                        _id: { $toLower: "$tumorName" },
+                        _id: "$tumorName",
                         count: { $sum: 1 }
+                    }
+                },
+                {
+                    $lookup: {
+                        from: "tumortypes",
+                        localField: "_id",
+                        foreignField: "_id",
+                        as: "tumor"
+                    }
+                },
+                {
+                    $unwind: {
+                        path: "$tumor",
+                        preserveNullAndEmptyArrays: true
                     }
                 },
                 {
                     $project: {
                         _id: 0,
-                        tumorName: "$_id",
+                        tumorName: {
+                            $ifNull: ["$tumor.tumorName", "Unknown"]
+                        },
                         count: 1
                     }
                 },
-                { $sort: { count: -1 } }
+                {
+                    $sort: { count: -1 }
+                }
             ])
         ]);
 
@@ -433,13 +453,14 @@ const getDashboard = async (req, res, next) => {
                 totalDoctors,
                 totalPatients,
                 scansAnalyzed,
-                aiAccuracyAvg: aiAccuracyAvg.toFixed(1) + "%",
+                aiAccuracyAvg: `${aiAccuracyAvg.toFixed(1)}%`,
                 monthlyActivity,
                 tumorTypes
             }
         });
 
     } catch (error) {
+        console.error("Dashboard Error:", error);
         next(error);
     }
 };
