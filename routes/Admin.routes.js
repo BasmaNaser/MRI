@@ -267,6 +267,7 @@ AdminRouter.patch('/profile',protectAdmin(),updateAdminProfile)
  *             required:
  *               - currentPassword
  *               - newPassword
+ *               - confirmNewPassword
  *             properties:
  *               currentPassword:
  *                 type: string
@@ -274,8 +275,9 @@ AdminRouter.patch('/profile',protectAdmin(),updateAdminProfile)
  *               newPassword:
  *                 type: string
  *                 example: NewPassword123
-                confirmNewPassword:
-                  type: string
+ *               confirmNewPassword:
+ *                 type: string
+ *                 example: NewPassword123
  *     responses:
  *       200:
  *         description: Password updated
