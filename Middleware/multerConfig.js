@@ -14,13 +14,26 @@ const uploadFile = (folder) => {
     });
 
     const fileFilter = (req, file, cb) => {
-        const allowedTypes = /jpeg|jpg|png|pdf/; 
-        const extname = allowedTypes.test(path.extname(file.originalname).toLowerCase());
-        const mimeType = allowedTypes.test(file.mimetype);
 
-        if (extname && mimeType) cb(null, true);
-        else cb(new Error('Only images or PDF files are allowed'));
-    };
+    const filename = file.originalname.toLowerCase();
+
+    if (
+        filename.endsWith('.jpg') ||
+        filename.endsWith('.jpeg') ||
+        filename.endsWith('.png') ||
+        filename.endsWith('.pdf') ||
+        filename.endsWith('.nii') ||
+        filename.endsWith('.nii.gz')
+    ) {
+        return cb(null, true);
+    }
+
+    return cb(
+        new Error(
+            'Only JPG, PNG, PDF, NII and NII.GZ files are allowed'
+        )
+    );
+};
 
     return multer({ storage, fileFilter });
 };
