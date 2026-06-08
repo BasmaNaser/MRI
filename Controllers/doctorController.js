@@ -35,7 +35,17 @@ function resolveConfidence(score, populatedTumorName) {
   return formatConfidence(score);
 }
 
-// 1. Dashboard API
+// ─── Helper: auto-assign report status based on AI confidence score
+//   confidenceScore null  → 'Pending Review'   (no AI result yet — initial state)
+//   confidenceScore < 50% → 'Pending Reviewed' (low confidence → urgent priority for doctor)
+//   confidenceScore ≥ 50% → 'Reviewed'         (decent confidence → doctor viewed, awaiting recommendation)
+function resolveReportStatus(confidenceScore) {
+  if (confidenceScore == null) return 'Pending Review';
+  // Normalise: AI may store 0–1 or 0–100
+  const pct = confidenceScore <= 1 ? confidenceScore * 100 : confidenceScore;
+  return pct < 50 ? 'Pending Reviewed' : 'Reviewed';
+}
+
 exports.getDashboardData = async (req, res) => {
   try {
     const doctorId = req.doctor._id;
@@ -417,6 +427,14 @@ exports.createRecommendation = async (req, res) => {
       finalConfidence = 100;
     }
 
+    // Auto-set status based on confidence:
+    //   < 50%  → 'Pending Reviewed' (low confidence — high priority, needs urgent review)
+    //   ≥ 50%  → 'Reviewed'         (decent confidence — doctor viewed, no recommendation yet)
+    // If recommendation is provided right away → skip to 'Completed'
+    const autoStatus = recommendation
+      ? 'Completed'
+      : resolveReportStatus(finalConfidence);
+
     const newReport = new Report({
       patient: patientId,
       doctor: doctorId,
@@ -429,6 +447,7 @@ exports.createRecommendation = async (req, res) => {
       recommendation, // standard MRI
       aiRecommendation: recommendation, // local GUI dashboard
       reportFile,
+      status: autoStatus,
     });
 
     await newReport.save();
@@ -797,14 +816,20 @@ exports.updateRecommendationStatus = async (req, res) => {
     if (doctorComment !== undefined) {
       report.doctorComment = doctorComment;
     }
+
+    // If an explicit status is passed in the request body, use it;
+    // otherwise: a filled doctorComment means the doctor took action → mark 'Completed'
     if (status) {
       report.status = status;
+    } else if (doctorComment && doctorComment.trim()) {
+      report.status = 'Completed';
     }
 
     await report.save();
 
     res.status(200).json({
       success: true,
+      message: `Report status updated to '${report.status}'.`,
       data: report,
     });
   } catch (error) {
