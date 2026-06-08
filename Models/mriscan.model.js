@@ -6,6 +6,10 @@ const mriScanSchema = new mongoose.Schema(
         type:String,
         required:true
     },
+    scanType: {
+    type: String,
+    enum: ["2d", "3d"]
+    },
 
     scanDate:{
         type:Date,
