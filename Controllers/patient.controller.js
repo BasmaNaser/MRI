@@ -359,113 +359,204 @@ async function getAllReportsController(req, res) {
 }
 
 async function uploadScanController(req, res, next) {
-    try {
-        const user = req.user;
-        const file = req.file;
+  try {
+    const user = req.user;
 
-        if (!file) {
-            return res.status(400).json({
-                success: false,
-                message: "Scan image is required"
-            });
+    const scanImage = req.files?.scanImage?.[0];
+    const flair = req.files?.flair_file?.[0];
+    const t2 = req.files?.t2_file?.[0];
+
+    const is2D = !!scanImage;
+    const is3D = !!flair && !!t2;
+
+    if (!is2D && !is3D) {
+      return res.status(400).json({
+        success: false,
+        message: "No valid files uploaded"
+      });
+    }
+
+    const patient = await Patient.findOne({ user: user._id })
+      .populate("assigneddoctor");
+
+    const doctor = patient?.assigneddoctor;
+
+    let result;
+    let scanImageUrl = null;
+
+    // =========================
+    // 2D SCAN
+    // =========================
+    if (is2D) {
+
+      const upload = await cloudinary.uploader.upload(scanImage.path, {
+        folder: "scans"
+      });
+
+      scanImageUrl = upload.secure_url;
+
+      const formData = new FormData();
+      formData.append("file", fs.createReadStream(scanImage.path));
+
+      const aiResponse = await axios.post(
+        "https://doha14-brain-tumor-api.hf.space/predict",
+        formData,
+        { headers: formData.getHeaders() }
+      );
+
+      result = aiResponse.data;
+
+      fs.unlinkSync(scanImage.path);
+    }
+
+    // =========================
+    // 3D SCAN
+    // =========================
+    else {
+
+      const formData = new FormData();
+      formData.append("flair_file", fs.createReadStream(flair.path));
+      formData.append("t2_file", fs.createReadStream(t2.path));
+
+      const aiResponse = await axios.post(
+        "https://doha14-3d-seg.hf.space/predict_3d",
+        formData,
+        {
+          headers: formData.getHeaders(),
+          timeout: 300000
         }
+      );
 
-        const patient = await Patient.findOne({ user: user._id })
-            .populate('assigneddoctor');
+      result = aiResponse.data;
 
-        const doctor = patient.assigneddoctor;
+      fs.unlinkSync(flair.path);
+      fs.unlinkSync(t2.path);
 
-        // 1. Upload scan image to Cloudinary
-        const scanResult = await cloudinary.uploader.upload(file.path, {
-            folder: "scans"
-        });
+      scanImageUrl = "3D_SCAN";
+    }
 
-        // 2. Send file to AI API
-        const formData = new FormData();
-        formData.append("file", fs.createReadStream(file.path));
+    // =========================
+    // NORMALIZATION
+    // =========================
 
-        const aiResponse = await axios.post(
-            "https://doha14-brain-tumor-api.hf.space/predict",
-            formData,
-            {
-                headers: {
-                    ...formData.getHeaders()
-                }
-            }
+    let predicted;
+    let confidence = 0;
+    let reportFile = null;
+
+    // -------- 2D --------
+    if (is2D) {
+
+      predicted = result.predicted_class || "no_tumor";
+      confidence = result.confidence || 0;
+
+      if (result.overlay) {
+        const overlayUpload = await cloudinary.uploader.upload(
+          `data:image/png;base64,${result.overlay}`,
+          { folder: "overlays" }
         );
 
-        const result = aiResponse.data;
-
-        // 3. Remove local file AFTER everything
-        if (fs.existsSync(file.path)) {
-            fs.unlinkSync(file.path);
-        }
-
-        // 4. Handle tumor type
-        let predicted = result.predicted_class;
-        if (!predicted) {
-            predicted = "no_tumor";
-        }
-        let tumor = await Tumortype.findOne({ tumorName: predicted });
-
-        if (!tumor) {
-            tumor = await Tumortype.create({
-                tumorName: predicted
-            });
-        }
-
-        // 5. Scan status
-        const scanStatus = result.confidence > 0.5 ? "Reviewed" : "Completed";
-
-        // 6. Handle overlay (image or base64)
-        let overlayResult;
-
-        if (result.overlay.startsWith("http")) {
-            overlayResult = await cloudinary.uploader.upload(result.overlay, {
-                folder: "overlays"
-            });
-        } else {
-            overlayResult = await cloudinary.uploader.upload(
-                `data:image/png;base64,${result.overlay}`,
-                {
-                    folder: "overlays"
-                }
-            );
-        }
-
-        // 7. Save scan
-        const newScan = await MriScan.create({
-            scanImage: scanResult.secure_url,
-            patient: patient._id,
-            doctor: doctor ? doctor._id : null,
-            status: scanStatus,
-        });
-
-        // 8. Save report
-        await Report.create({
-            scan: newScan._id,
-            patient: patient._id,
-            doctor: doctor ? doctor._id : null,
-            tumorName: tumor._id,
-            confidenceScore: result.confidence,
-            reportFile: overlayResult.secure_url,
-            status: scanStatus
-        });
-
-        // 9. Update scan status
-        newScan.status = scanStatus;
-        await newScan.save();
-
-        // 10. Response
-        res.status(201).json({
-            success: true,
-            data: newScan
-        });
-
-    } catch (error) {
-        console.error(error.response?.data || error.message);
-        next(error);
+        reportFile = overlayUpload.secure_url;
+      }
     }
+
+    // -------- 3D --------
+    else {
+
+      predicted = result.tumor_detected
+        ? "tumor_detected"
+        : "no_tumor";
+
+      confidence = result.tumor_detected ? 1 : 0;
+
+      console.log("🧠 3D OUTPUT:", {
+        tumor_detected: result.tumor_detected,
+        tumor_voxels: result.tumor_voxels,
+        mask_shape: result.mask_shape,
+        mask :result.mask,
+        slice: result.current_slice
+      });
+
+      reportFile = result.mask || null;
+    }
+
+    // =========================
+    // FIX RULES
+    // =========================
+
+    // no_tumor → normal
+    if (predicted === "no_tumor") {
+      predicted = "Normal";
+    }
+
+    // confidence rule
+    const scanStatus = confidence > 0.5 ? "Reviewed" : "Completed";
+
+    if (confidence > 0.5) {
+      confidence = 1;
+    }
+
+    // =========================
+    // Tumor Type
+    // =========================
+
+    let tumor = await Tumortype.findOne({ tumorName: predicted });
+
+    if (!tumor) {
+      tumor = await Tumortype.create({ tumorName: predicted });
+    }
+
+    // =========================
+    // Save Scan
+    // =========================
+
+    const newScan = await MriScan.create({
+      scanImage: scanImageUrl,
+      patient: patient._id,
+      doctor: doctor?._id || null,
+      status: scanStatus,
+      scanType: is2D ? "2d" : "3d"
+    });
+
+    // =========================
+    // Save Report
+    // =========================
+
+    await Report.create({
+      scan: newScan._id,
+      patient: patient._id,
+      doctor: doctor?._id || null,
+      tumorName: tumor._id,
+      confidenceScore: confidence,
+      reportFile: reportFile,
+      status: scanStatus
+    });
+
+    // =========================
+    // RESPONSE
+    // =========================
+
+    return res.status(201).json({
+      success: true,
+      data: newScan,
+      prediction: is2D
+        ? {
+            predicted_class: result.predicted_class,
+            confidence: confidence,
+            overlay: reportFile
+          }
+        : {
+            tumor_detected: result.tumor_detected,
+            tumor_voxels: result.tumor_voxels,
+            mask_shape: result.mask_shape,
+            mask :result.mask,
+            current_slice: result.current_slice || null
+          }
+    });
+
+  } catch (error) {
+    console.error(error.response?.data || error.message);
+    next(error);
+  }
 }
 
 async function getScanResultController(req, res, next) {
