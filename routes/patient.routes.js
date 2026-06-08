@@ -167,7 +167,7 @@ patientRouter.get('/reports', protect('Patient'), getAllReportsController);
  * @swagger
  * /api/patient/scans/upload:
  *   post:
- *     summary: Upload a scan image
+ *     summary: Upload a 2D or 3D scan
  *     tags: [Patient]
  *     security:
  *       - bearerAuth: []
@@ -181,11 +181,35 @@ patientRouter.get('/reports', protect('Patient'), getAllReportsController);
  *               scanImage:
  *                 type: string
  *                 format: binary
+ *                 description: "2D scan image (required for 2D scans)"
+ *               flair_file:
+ *                 type: string
+ *                 format: binary
+ *                 description: "3D scan FLAIR file (required for 3D scans)"
+ *               t2_file:
+ *                 type: string
+ *                 format: binary
+ *                 description: "3D scan T2 file (required for 3D scans)"
  *     responses:
- *       200:
+ *       201:
  *         description: Scan uploaded successfully
+ *       400:
+ *         description: Bad Request - Missing or invalid files
+ *       401:
+ *         description: Unauthorized - Token missing or invalid
+ *       500:
+ *         description: Internal Server Error
  */
-patientRouter.post('/scans/upload', protect('Patient'), uploadFile('scans').single('scanImage'), uploadScanController);
+patientRouter.post(
+  '/scans/upload',
+  protect('Patient'),
+  uploadFile('scans').fields([
+  { name: 'scanImage', maxCount: 1 },
+  { name: 'flair_file', maxCount: 1 },
+  { name: 't2_file', maxCount: 1 }
+]),
+  uploadScanController
+);
 
 /**
  * @swagger
