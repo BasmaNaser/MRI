@@ -182,6 +182,7 @@ exports.getAllPatients = async (req, res) => {
         return {
           id: patient._id,
           patientName: userObj.username,
+          profileImage: userObj.profileImage || null,
           age: userObj.age || 0, // Fallback if age wasn't migrated
           status: patient.status,
           tumorType: tType,
@@ -296,6 +297,10 @@ exports.getPatientDetails = async (req, res) => {
         patientInfo: {
           id: `#BRN${patient._id.toString().slice(-4).toUpperCase()}`,
           name: patient.user ? patient.user.username : "Unknown",
+          email: patient.user ? patient.user.email : null,
+          phone: patient.user ? patient.user.phone : null,
+          gender: patient.user ? patient.user.gender : null,
+          profileImage: patient.user ? patient.user.profileImage : null,
           age: patient.user ? patient.user.age : null,
           lastScan: recentReport
             ? recentReport.reportDate
@@ -500,7 +505,30 @@ exports.getDoctorProfile = async (req, res) => {
   }
 };
 
-// 6.5 Update Profile
+// 6.5 Upload Profile Image
+exports.uploadDoctorImage = async (req, res) => {
+  try {
+    const user = req.user;
+    if (!req.file) {
+      return res
+        .status(400)
+        .json({ success: false, message: 'Profile image is required!' });
+    }
+
+    user.profileImage = req.file.path;
+    await user.save();
+
+    res.status(200).json({
+      success: true,
+      message: 'Profile image updated successfully',
+      data: { profileImage: user.profileImage },
+    });
+  } catch (error) {
+    res.status(500).json({ success: false, message: error.message });
+  }
+};
+
+// 6.6 Update Profile
 exports.updateDoctorProfile = async (req, res) => {
   try {
     const {
