@@ -3,6 +3,7 @@ const router = express.Router();
 const doctorController = require('../Controllers/doctorController');
 const protect = require('../Middleware/protect');
 const { updateProfileValidation } = require('../Middleware/Validation');
+const uploadFile = require('../Middleware/multerConfig');
 
 const doctorOnly = protect('Doctor');
 
@@ -199,6 +200,32 @@ router.get('/profile', doctorOnly, doctorController.getDoctorProfile);
  *         description: Profile updated successfully
  */
 router.put('/profile', doctorOnly, updateProfileValidation, doctorController.updateDoctorProfile);
+
+/**
+ * @swagger
+ * /api/doctor/profile/uploadImage:
+ *   put:
+ *     summary: Upload doctor profile image
+ *     tags: [Doctors]
+ *     security:
+ *       - bearerAuth: []
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         multipart/form-data:
+ *           schema:
+ *             type: object
+ *             properties:
+ *               profileImage:
+ *                 type: string
+ *                 format: binary
+ *     responses:
+ *       200:
+ *         description: Profile image uploaded successfully
+ *       400:
+ *         description: Image file is required
+ */
+router.put('/profile/uploadImage', doctorOnly, uploadFile('doctor').single('profileImage'), doctorController.uploadDoctorImage);
 
 // 7. Notes
 /**
