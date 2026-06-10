@@ -27,12 +27,14 @@ function isTumorDetected(populatedTumorName) {
 
 // ─── Helper: resolve confidence based on 3 cases:
 //   1. No tumorName data at all (null/undefined) → null  (no scan data yet)
-//   2. tumorName = "Normal" → "100.0%"           (scan done, no tumor found)
-//   3. tumorName = anything else → AI score      (tumor detected)
+//   2. tumorName = "Normal" (explicitly) → "100.0%"  (scan done, no tumor found)
+//   3. tumorName = anything else → AI score from DB   (tumor detected)
 function resolveConfidence(score, populatedTumorName) {
+  // No populate result → no scan data → do NOT assume Normal
   if (!populatedTumorName || !populatedTumorName.tumorName) return null;
   if (populatedTumorName.tumorName.toLowerCase() === "normal") return "100.0%";
-  return formatConfidence(score);
+  // Tumor detected: return real AI confidence (could be null if not stored)
+  return score != null ? formatConfidence(score) : null;
 }
 
 // ─── Helper: auto-assign report status based on AI confidence score
@@ -164,14 +166,15 @@ exports.getAllPatients = async (req, res) => {
         );
 
         let tType = null;
-        let conf = "--";
+        let conf = null;
         let scanDate = null;
 
         if (recentReport) {
+          // Only show "Normal" if tumorName is explicitly "Normal" in DB
           tType =
             recentReport.tumorName && recentReport.tumorName.tumorName
               ? recentReport.tumorName.tumorName
-              : "Normal";
+              : null;
           conf = resolveConfidence(recentReport.confidenceScore, recentReport.tumorName);
           scanDate = recentReport.reportDate;
         } else if (latestScan) {
@@ -372,7 +375,7 @@ exports.getPatientReports = async (req, res) => {
 
     const formattedReports = reports.map((r) => {
       const plain = r.toObject();
-      // Determine tumor type name
+      // Determine tumor type name — only "Normal" if explicitly set in DB
       const tumorTypeName =
         r.tumorName && r.tumorName.tumorName
           ? r.tumorName.tumorName
@@ -384,7 +387,7 @@ exports.getPatientReports = async (req, res) => {
       }
 
       // Add formatted fields used by frontend
-      plain.tumorType = tumorTypeName || "Normal";
+      plain.tumorType = tumorTypeName || null;  // null = no data, not "Normal"
       plain.tumorDetected = isTumorDetected(r.tumorName);
       plain.confidence = resolveConfidence(r.confidenceScore, r.tumorName);
 
@@ -759,10 +762,11 @@ exports.getAllReports = async (req, res) => {
       id: r._id,
       patientName:
         r.patient && r.patient.user ? r.patient.user.username : "Unknown",
+      // Only show "Normal" if explicitly in DB — null means no scan data yet
       tumorType:
         r.tumorName && r.tumorName.tumorName
           ? r.tumorName.tumorName
-          : "Normal",
+          : null,
       tumorDetected: isTumorDetected(r.tumorName),
       confidence: resolveConfidence(r.confidenceScore, r.tumorName),
       scanDate: r.reportDate,
