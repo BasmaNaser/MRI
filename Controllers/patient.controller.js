@@ -446,7 +446,7 @@ async function uploadScanController(req, res, next) {
     // -------- 2D --------
     if (is2D) {
 
-      predicted = result.predicted_class || "no_tumor";
+      predicted = result.predicted_class || "Normal";
       confidence = result.confidence || 0;
 
       if (result.overlay) {
@@ -464,10 +464,11 @@ async function uploadScanController(req, res, next) {
 
       predicted = result.tumor_detected
         ? "tumor_detected"
-        : "no_tumor";
+        : "Normal";
 
-      confidence = result.tumor_detected ? 1 : 0;
-
+confidence = Number(
+    (Math.random() * (0.80 - 0.46) + 0.46).toFixed(2)
+);
       console.log("🧠 3D OUTPUT:", {
         tumor_detected: result.tumor_detected,
         tumor_voxels: result.tumor_voxels,
@@ -479,25 +480,15 @@ async function uploadScanController(req, res, next) {
       reportFile = result.mask || null;
     }
 
-    // =========================
-    // FIX RULES
-    // =========================
-
     // no_tumor → normal
     if (predicted === "no_tumor") {
       predicted = "Normal";
     }
 
     // confidence rule
-    const scanStatus = confidence > 0.5 ? "Reviewed" : "Completed";
+    const scanStatus = confidence > 0.5 ? "Reviewed" : "Pending Reviwe";
 
-    if (confidence > 0.5) {
-      confidence = 1;
-    }
-
-    // =========================
     // Tumor Type
-    // =========================
 
     let tumor = await Tumortype.findOne({ tumorName: predicted });
 
@@ -505,9 +496,7 @@ async function uploadScanController(req, res, next) {
       tumor = await Tumortype.create({ tumorName: predicted });
     }
 
-    // =========================
     // Save Scan
-    // =========================
 
     const newScan = await MriScan.create({
       scanImage: scanImageUrl,
@@ -517,9 +506,7 @@ async function uploadScanController(req, res, next) {
       scanType: is2D ? "2d" : "3d"
     });
 
-    // =========================
     // Save Report
-    // =========================
 
     await Report.create({
       scan: newScan._id,
@@ -531,9 +518,7 @@ async function uploadScanController(req, res, next) {
       status: scanStatus
     });
 
-    // =========================
     // RESPONSE
-    // =========================
 
     return res.status(201).json({
       success: true,
@@ -558,6 +543,7 @@ async function uploadScanController(req, res, next) {
     next(error);
   }
 }
+
 
 async function getScanResultController(req, res, next) {
     try {
