@@ -225,7 +225,14 @@ router.put('/profile', doctorOnly, updateProfileValidation, doctorController.upd
  *       400:
  *         description: Image file is required
  */
-router.put('/profile/uploadImage', doctorOnly, uploadFile('doctor').single('profileImage'), doctorController.uploadDoctorImage);
+router.put('/profile/uploadImage', doctorOnly, (req, res, next) => {
+  uploadFile('doctor').single('profileImage')(req, res, (err) => {
+    if (err) {
+      return res.status(400).json({ success: false, message: err.message });
+    }
+    next();
+  });
+}, doctorController.uploadDoctorImage);
 
 // 7. Notes
 /**
