@@ -525,8 +525,9 @@ exports.uploadDoctorImage = async (req, res) => {
         .json({ success: false, message: 'Profile image is required!' });
     }
 
-    // Normalize path separators (Windows backslash → forward slash)
-    const imagePath = req.file.path.replace(/\\/g, '/');
+    // Build a clean relative URL path for DB storage and serving via /uploads static route
+    // multer stores the absolute path in req.file.path, but we only need the relative portion
+    const imagePath = `uploads/doctor/${req.file.filename}`;
 
     user.profileImage = imagePath;
     await user.save();
