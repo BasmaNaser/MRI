@@ -512,13 +512,23 @@ exports.getDoctorProfile = async (req, res) => {
 exports.uploadDoctorImage = async (req, res) => {
   try {
     const user = req.user;
+
+    if (!user) {
+      return res
+        .status(401)
+        .json({ success: false, message: 'Unauthorized: user not found in request.' });
+    }
+
     if (!req.file) {
       return res
         .status(400)
         .json({ success: false, message: 'Profile image is required!' });
     }
 
-    user.profileImage = req.file.path;
+    // Normalize path separators (Windows backslash → forward slash)
+    const imagePath = req.file.path.replace(/\\/g, '/');
+
+    user.profileImage = imagePath;
     await user.save();
 
     res.status(200).json({
