@@ -532,7 +532,7 @@ const changePassword = async (req, res, next) => {
     }
 };
 
-const updateAdminProfile=async(req,res,next)=>{
+const updateAdminProfile = async (req, res, next) => {
     try {
         const errors = validationResult(req);
 
@@ -544,17 +544,37 @@ const updateAdminProfile=async(req,res,next)=>{
         }
 
         const { username, email } = req.body;
+
         const admin = await Admin.findById(req.user._id);
+
         if (!admin) {
-            return res.status(404).json({ success: false, message: "Admin not found" });
+            return res.status(404).json({
+                success: false,
+                message: "Admin not found"
+            });
         }
 
-        if (username) admin.fullName = username;
-        if (email) admin.email = email;
+        // Check email uniqueness
+        if (email && email !== admin.email) {
+            const existingAdmin = await Admin.findOne({ email });
+
+            if (existingAdmin) {
+                return res.status(400).json({
+                    success: false,
+                    message: "Email already exists"
+                });
+            }
+
+            admin.email = email;
+        }
+
+        if (username) {
+            admin.fullName = username.trim();
+        }
 
         await admin.save();
 
-        res.status(200).json({
+        return res.status(200).json({
             success: true,
             message: "Profile updated successfully",
             data: {
@@ -564,7 +584,19 @@ const updateAdminProfile=async(req,res,next)=>{
         });
 
     } catch (error) {
-        next(error);
+        console.error("Update Admin Profile Error:", error);
+
+        if (error.code === 11000) {
+            return res.status(400).json({
+                success: false,
+                message: "Email already exists"
+            });
+        }
+
+        return res.status(500).json({
+            success: false,
+            message: error.message
+        });
     }
 };
 module.exports={updateAdminProfile,changePassword,getDoctors,createDoctor,getDashboard,viewPatient,getPatients
