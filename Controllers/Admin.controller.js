@@ -299,33 +299,52 @@ const viewPatient = async (req, res, next) => {
 
 const getReports = async (req, res, next) => {
     try {
-        const { doctorId, patientId } = req.query;
+        const { doctorId, patientId, page = 1, limit = 20 } = req.query;
 
         let filter = {};
 
-        if (doctorId) filter.doctor= doctorId;
-        if (patientId) filter.patient= patientId;
-const reports = await Report.find(filter)
-  // populate patient -> patient.user -> username
-  .populate({
-    path: 'patient',
-    populate: { path: 'user', select: 'username' }
-  })
-  // populate doctor -> doctor.user -> username
-  .populate({
-    path: 'doctor',
-    populate: { path: 'user', select: 'username' }
-  })
-  // populate tumor type
-  .populate('tumorName')
-  .populate('scan','scanDate')
-  .sort({ createdAt: -1 }).exec();;
+        if (doctorId) filter.doctor = doctorId;
+        if (patientId) filter.patient = patientId;
+
+        const reports = await Report.find(filter)
+        
+            .select('-reportFile -originalScan -segmentedScan')
+
+            .populate({
+                path: 'patient',
+                populate: {
+                    path: 'user',
+                    select: 'username'
+                }
+            })
+
+            .populate({
+                path: 'doctor',
+                populate: {
+                    path: 'user',
+                    select: 'username'
+                }
+            })
+
+            .populate('tumorName')
+            .populate('scan', 'scanDate')
+
+            .sort({ createdAt: -1 })
+            .skip((Number(page) - 1) * Number(limit))
+            .limit(Number(limit));
+
+        const total = await Report.countDocuments(filter);
+
         res.status(200).json({
             success: true,
+            total,
+            page: Number(page),
+            pages: Math.ceil(total / Number(limit)),
             data: reports
         });
 
     } catch (error) {
+        console.error('Get Reports Error:', error);
         next(error);
     }
 };
