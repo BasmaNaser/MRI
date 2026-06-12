@@ -249,7 +249,7 @@ AdminRouter.get('/dashboard',protectAdmin(),getDashboard);
  *       200:
  *         description: Profile updated
  */
-AdminRouter.patch('/profile',protectAdmin(),updateAdminProfile)
+AdminRouter.put('/profile',protectAdmin(),updateAdminProfile)
 /**
  * @swagger
  * /api/admin/password:
