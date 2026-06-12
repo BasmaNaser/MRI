@@ -241,10 +241,10 @@ AdminRouter.get('/dashboard',protectAdmin(),getDashboard);
  *             properties:
  *               username:
  *                 type: string
- *                 example: Omnia Sayed
+ *                 example: Nourhan
  *               email:
  *                 type: string
- *                 example: omnia@gmail.com
+ *                 example: Nourhan3@gmail.com
  *     responses:
  *       200:
  *         description: Profile updated
