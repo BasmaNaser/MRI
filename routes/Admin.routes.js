@@ -227,7 +227,7 @@ AdminRouter.get('/dashboard',protectAdmin(),getDashboard);
 /**
  * @swagger
  * /api/admin/profile:
- *   patch:
+ *   put:
  *     summary: Update admin profile
  *     tags: [Admin]
  *     security:
