@@ -253,7 +253,7 @@ AdminRouter.put('/profile',protectAdmin(),updateAdminProfile)
 /**
  * @swagger
  * /api/admin/password:
- *   patch:
+ *   put:
  *     summary: Change admin password
  *     tags: [Admin]
  *     security:
@@ -282,6 +282,6 @@ AdminRouter.put('/profile',protectAdmin(),updateAdminProfile)
  *       200:
  *         description: Password updated
  */
-AdminRouter.patch('/password',protectAdmin(),validateChangePassword,changePassword);
+AdminRouter.put('/password',protectAdmin(),validateChangePassword,changePassword);
 
 module.exports=AdminRouter;
